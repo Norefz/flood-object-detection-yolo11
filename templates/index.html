@@ -72,13 +72,13 @@
             </div>
           </div>
 
-          <section class="no-model-state mx-auto flex max-w-[680px] flex-col items-center border border-dashed border-[#B7B09E] bg-white px-6 py-12 text-center sm:py-16" id="no-model-state" hidden>
-            <div class="mb-5 text-[#5F5A50]" aria-hidden="true">
-              <svg class="h-12 w-12" viewBox="0 0 48 48" fill="none"><path d="M8 34h32M12 29l3-9h18l4 9M17 20l2-6h10l3 6M17 34v3m14-3v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="29" r="2" fill="currentColor"/><circle cx="32" cy="29" r="2" fill="currentColor"/></svg>
+          <section class="no-model-state flex min-h-[196px] w-full flex-col items-center justify-center border border-dashed border-[#B7B09E] bg-white px-6 py-8 text-center" id="no-model-state" hidden>
+            <div class="mb-3 text-[#5F5A50]" aria-hidden="true">
+              <svg class="h-8 w-8" viewBox="0 0 48 48" fill="none"><path d="M8 34h32M12 29l3-9h18l4 9M17 20l2-6h10l3 6M17 34v3m14-3v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="29" r="2" fill="currentColor"/><circle cx="32" cy="29" r="2" fill="currentColor"/></svg>
             </div>
-            <h2 class="text-[17px] font-medium tracking-[-0.02em] text-[#171612]">Upload model YOLO (.pt) untuk memulai</h2>
-            <p class="mt-2 max-w-[440px] text-[14px] leading-6 text-[#777064]">Setelah model aktif, unggah foto untuk mendeteksi objek pada lingkungan banjir.</p>
-            <button class="button button-dark mt-6" id="empty-upload-button" type="button">Pilih model .pt</button>
+            <h2 class="text-[16px] font-medium tracking-[-0.02em] text-[#171612]">Upload model YOLO (.pt) untuk memulai</h2>
+            <p class="mt-1 max-w-[520px] text-[13px] leading-5 text-[#777064]">Model aktif diperlukan sebelum foto atau video dapat diproses.</p>
+            <button class="button button-dark mt-4" id="empty-upload-button" type="button">Pilih model .pt</button>
           </section>
 
           <div class="photo-workspace" id="photo-workspace" hidden>
@@ -241,9 +241,13 @@
             <h1 class="text-[25px] font-medium tracking-[-0.035em] text-[#171612] sm:text-[28px]">Deteksi video</h1>
             <p class="mt-2 text-[14px] leading-6 text-[#5F5A50]">Unggah video untuk melihat klasifikasi objek dan hasil tracking.</p>
           </div>
-          <section class="no-model-state mx-auto flex max-w-[680px] flex-col items-center border border-dashed border-[#B7B09E] bg-white px-6 py-12 text-center" id="video-no-model" hidden>
-            <h2 class="text-[17px] font-medium text-[#171612]">Upload model YOLO (.pt) untuk memulai</h2>
-            <button class="button button-dark mt-5" id="video-upload-model-button" type="button">Pilih model .pt</button>
+          <section class="no-model-state flex min-h-[196px] w-full flex-col items-center justify-center border border-dashed border-[#B7B09E] bg-white px-6 py-8 text-center" id="video-no-model" hidden>
+            <div class="mb-3 text-[#5F5A50]" aria-hidden="true">
+              <svg class="h-8 w-8" viewBox="0 0 48 48" fill="none"><path d="M8 34h32M12 29l3-9h18l4 9M17 20l2-6h10l3 6M17 34v3m14-3v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="29" r="2" fill="currentColor"/><circle cx="32" cy="29" r="2" fill="currentColor"/></svg>
+            </div>
+            <h2 class="text-[16px] font-medium text-[#171612]">Upload model YOLO (.pt) untuk memulai</h2>
+            <p class="mt-1 text-[13px] leading-5 text-[#777064]">Model aktif diperlukan sebelum foto atau video dapat diproses.</p>
+            <button class="button button-dark mt-4" id="video-upload-model-button" type="button">Pilih model .pt</button>
           </section>
           <div class="video-workspace" id="video-workspace" hidden>
             <label class="video-dropzone flex min-h-[150px] cursor-pointer flex-col items-center justify-center border border-dashed border-[#B7B09E] bg-white px-5 py-7 text-center transition-colors" id="video-dropzone" for="video-file-input">
