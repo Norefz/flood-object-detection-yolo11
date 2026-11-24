@@ -1,5 +1,6 @@
 """Server Flask dan manajemen model YOLO."""
 
+import io
 import json
 import logging
 import math
@@ -9,11 +10,12 @@ import shutil
 import subprocess
 import tempfile
 import threading
+import time
 import uuid
 from datetime import datetime
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request, send_from_directory
+from flask import Flask, jsonify, render_template, request, send_file, send_from_directory
 from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.utils import secure_filename
 
@@ -35,8 +37,12 @@ BASE_DIR = Path(__file__).resolve().parent
 MODEL_DIR = BASE_DIR / "model"
 OUTPUT_DIR = BASE_DIR / "outputs"
 UPLOAD_DIR = BASE_DIR / "uploads"
+REPORT_DIR = BASE_DIR / "reports"
+REPORT_LOG = REPORT_DIR / "report_log.json"
 SETTINGS_FILE = BASE_DIR / "settings.json"
 MAX_MODEL_SIZE = 200 * 1024 * 1024
+MAX_UPLOAD_SIZE = 500 * 1024 * 1024
+FILE_RETENTION_SECONDS = 24 * 60 * 60
 FALLBACK_MODEL_NAME = "yolo11n.pt"
 FALLBACK_CLASSES = [1, 2, 3, 5, 7]
 DEFAULT_SETTINGS = {"active_model": None, "conf": 0.25}
@@ -44,6 +50,7 @@ DEFAULT_SETTINGS = {"active_model": None, "conf": 0.25}
 # Gunakan lock terpisah untuk pergantian model dan penulisan pengaturan.
 MODEL_LOCK = threading.Lock()
 SETTINGS_LOCK = threading.Lock()
+REPORT_LOCK = threading.Lock()
 VIDEO_JOBS_LOCK = threading.Lock()
 VIDEO_WORKER_LOCK = threading.Lock()
 VIDEO_JOBS = {}
@@ -57,9 +64,9 @@ ACTIVE_MODEL_IS_FALLBACK = False
 ACTIVE_CLASSES = None
 SETTINGS = dict(DEFAULT_SETTINGS)
 
-# Batasi request sedikit di atas batas file untuk memberi ruang multipart header.
+# Batasi ukuran keseluruhan request upload menjadi 500 MB.
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = MAX_MODEL_SIZE + 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_SIZE
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -82,6 +89,104 @@ def _valid_conf(value):
     if not math.isfinite(conf) or not 0.1 <= conf <= 0.9:
         return None
     return conf
+
+
+def _cleanup_old_files():
+    """Hapus file upload/hasil yang berumur lebih dari 24 jam."""
+    cutoff = time.time() - FILE_RETENTION_SECONDS
+    removed = 0
+    for folder in (UPLOAD_DIR, OUTPUT_DIR):
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+            for path in folder.rglob("*"):
+                # Pertahankan penanda folder kosong yang dilacak Git.
+                if path.name == ".gitkeep" or not path.is_file():
+                    continue
+                try:
+                    if path.stat().st_mtime < cutoff:
+                        path.unlink()
+                        removed += 1
+                except OSError as error:
+                    logger.warning("File lama gagal dibersihkan (%s): %s", path, error)
+        except OSError as error:
+            logger.warning("Folder sementara gagal diperiksa (%s): %s", folder, error)
+    if removed:
+        logger.info("Pembersihan startup menghapus %s file berumur lebih dari 24 jam.", removed)
+
+
+def _read_report_rows():
+    """Baca log laporan; file kosong, rusak, atau belum ada dianggap tanpa baris."""
+    try:
+        if not REPORT_LOG.exists() or REPORT_LOG.stat().st_size == 0:
+            return []
+        with REPORT_LOG.open("r", encoding="utf-8") as report_file:
+            rows = json.load(report_file)
+        if not isinstance(rows, list):
+            raise ValueError("akar JSON laporan harus berupa array")
+        return [row for row in rows if isinstance(row, dict)]
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError, ValueError) as error:
+        logger.warning("Log laporan tidak dapat dibaca; gunakan daftar kosong: %s", error)
+        return []
+
+
+def _write_report_rows_atomic(rows):
+    """Ganti report_log.json secara atomik agar log tidak terpotong saat ditulis."""
+    REPORT_DIR.mkdir(parents=True, exist_ok=True)
+    temp_path = None
+    try:
+        fd, temp_name = tempfile.mkstemp(
+            prefix=".report-", suffix=".tmp", dir=REPORT_DIR
+        )
+        temp_path = Path(temp_name)
+        with os.fdopen(fd, "w", encoding="utf-8") as temp_file:
+            json.dump(rows, temp_file, ensure_ascii=False, indent=2)
+            temp_file.write("\n")
+            temp_file.flush()
+            os.fsync(temp_file.fileno())
+        os.replace(temp_path, REPORT_LOG)
+    finally:
+        if temp_path and temp_path.exists():
+            temp_path.unlink()
+
+
+def _make_enhancement_report(file_name, kind, model_name, method, brightness, conf, baseline, result):
+    """Satukan angka sebelum/sesudah dan hitung selisih sesudah dikurangi sebelum."""
+    before_total = int(baseline["total"])
+    after_total = int(result["total"])
+    before_region = int(baseline["inside_region"])
+    after_region = int(result["inside_region"])
+    before_conf = float(baseline["avg_conf"])
+    after_conf = float(result["avg_conf"])
+    return {
+        "waktu": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "nama_file": file_name,
+        "jenis": kind,
+        "model": model_name,
+        "metode_enhancement": method,
+        "brightness": float(brightness),
+        "conf": float(conf),
+        "total_sebelum": before_total,
+        "total_sesudah": after_total,
+        "selisih_total": after_total - before_total,
+        "region_sebelum": before_region,
+        "region_sesudah": after_region,
+        "selisih_region": after_region - before_region,
+        "avgconf_sebelum": before_conf,
+        "avgconf_sesudah": after_conf,
+        "selisih_avgconf": after_conf - before_conf,
+    }
+
+
+def _append_enhancement_report(file_name, kind, model_name, method, brightness, conf, baseline, result):
+    """Tambahkan satu laporan baseline di bawah lock lalu simpan atomik."""
+    row = _make_enhancement_report(
+        file_name, kind, model_name, method, brightness, conf, baseline, result
+    )
+    with REPORT_LOCK:
+        rows = _read_report_rows()
+        rows.append(row)
+        _write_report_rows_atomic(rows)
+    return row
 
 
 def _write_settings_atomic(settings):
@@ -152,6 +257,9 @@ def initialize_app_state():
     """Muat model tersimpan saat start, lalu fallback hanya bila env mengaktifkannya."""
     global ACTIVE_MODEL, ACTIVE_MODEL_NAME, ACTIVE_MODEL_IS_FALLBACK, ACTIVE_CLASSES, SETTINGS
 
+    # Bersihkan file sementara lama sebelum server menerima permintaan.
+    _cleanup_old_files()
+
     # Baca confidence dan nama model tersimpan lebih dulu.
     loaded_settings = _read_settings()
     SETTINGS = dict(loaded_settings)
@@ -215,7 +323,7 @@ def _set_active_model(model, name, is_fallback=False):
 @app.errorhandler(RequestEntityTooLarge)
 def handle_request_too_large(_error):
     """Kembalikan error JSON saat ukuran request melewati batas server."""
-    return jsonify({"ok": False, "error": "Ukuran upload melebihi batas 200 MB."}), 413
+    return jsonify({"ok": False, "error": "Ukuran upload melebihi batas 500 MB."}), 413
 
 
 @app.get("/")
@@ -489,6 +597,23 @@ def detect_image():
             (OUTPUT_DIR / filename).unlink(missing_ok=True)
         return jsonify({"error": f"Hasil deteksi gagal disimpan: {error}"}), 500
 
+    # Catat hanya deteksi yang benar-benar memiliki hasil baseline.
+    if baseline is not None:
+        try:
+            _append_enhancement_report(
+                secure_filename(uploaded.filename) or uploaded.filename,
+                "foto",
+                model_name,
+                method,
+                brightness,
+                conf,
+                baseline,
+                stats,
+            )
+        except OSError as error:
+            logger.exception("Laporan deteksi foto gagal disimpan")
+            return jsonify({"error": f"Laporan deteksi gagal disimpan: {error}"}), 500
+
     return jsonify({
         "original_url": f"/outputs/{filenames['original']}",
         "enhanced_url": f"/outputs/{filenames['enhanced']}",
@@ -669,7 +794,7 @@ def _process_video_job(job):
 
         # Muat instance model baru untuk hasil utama, terpisah dari model global.
         _set_video_job(job["job_id"], message="Menganalisis video…")
-        stats, _ = _run_video_pass(
+        stats, enhanced_summary = _run_video_pass(
             job,
             job["model_source"],
             frame_size,
@@ -683,6 +808,18 @@ def _process_video_job(job):
         # Beri tahu frontend bahwa tracking selesai dan video sedang dikonversi.
         _set_video_job(job["job_id"], percent=99, message="Mengonversi video ke H.264…")
         _encode_video_h264(temporary_path, result_path)
+        # Simpan laporan setelah kedua lintasan dan file H.264 berhasil dibuat.
+        if baseline is not None:
+            _append_enhancement_report(
+                job["file_name"],
+                "video",
+                job["model_name"],
+                job["enhance"],
+                job["brightness"],
+                job["conf"],
+                baseline,
+                enhanced_summary,
+            )
         _set_video_job(
             job["job_id"],
             status="done",
@@ -803,6 +940,8 @@ def process_video():
         "enhance": enhance,
         "brightness": brightness,
         "region": region,
+        "file_name": safe_name,
+        "model_name": active_model_name,
         "status": "queued",
         "percent": 0,
         "result_url": None,
@@ -834,6 +973,153 @@ def video_progress(job_id):
         return jsonify({key: job[key] for key in (
             "status", "percent", "result_url", "stats", "baseline", "message"
         )})
+
+
+@app.get("/api/report")
+def get_report():
+    """Kirim seluruh baris laporan dari file JSON lokal."""
+    with REPORT_LOCK:
+        rows = _read_report_rows()
+    return jsonify({"rows": rows})
+
+
+@app.post("/api/report/clear")
+def clear_report():
+    """Kosongkan log laporan dengan penggantian file yang aman."""
+    try:
+        with REPORT_LOCK:
+            _write_report_rows_atomic([])
+    except OSError as error:
+        logger.exception("Log laporan gagal dikosongkan")
+        return jsonify({"ok": False, "error": f"Laporan gagal dikosongkan: {error}"}), 500
+    return jsonify({"ok": True})
+
+
+def _style_excel_header(worksheet, row_number=1):
+    """Beri warna aksen dan teks tebal pada header spreadsheet."""
+    from openpyxl.styles import Alignment, Font, PatternFill
+
+    for cell in worksheet[row_number]:
+        cell.fill = PatternFill(fill_type="solid", fgColor="1D5FBF")
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.alignment = Alignment(vertical="center", wrap_text=True)
+    worksheet.row_dimensions[row_number].height = 30
+
+
+def _fit_excel_columns(worksheet):
+    """Sesuaikan lebar berdasarkan isi dengan batas agar tidak terlalu lebar."""
+    for column_cells in worksheet.columns:
+        letter = column_cells[0].column_letter
+        longest = max((len(str(cell.value or "")) for cell in column_cells), default=0)
+        worksheet.column_dimensions[letter].width = min(42, max(12, longest + 2))
+
+
+def _report_number(row, key):
+    """Konversi angka dari JSON untuk ditaruh ke sel Excel."""
+    value = row.get(key)
+    if isinstance(value, bool) or value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _make_report_workbook(rows):
+    """Buat workbook laporan lengkap dan ringkasan rata-rata per enhancement."""
+    from collections import defaultdict
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+
+    headers = [
+        "Waktu", "Nama file", "Jenis", "Model", "Metode enhancement",
+        "Brightness", "Confidence", "Total sebelum", "Total sesudah",
+        "Selisih total", "Region sebelum", "Region sesudah", "Selisih region",
+        "Avg conf sebelum", "Avg conf sesudah", "Selisih avg conf",
+    ]
+    fields = [
+        "waktu", "nama_file", "jenis", "model", "metode_enhancement",
+        "brightness", "conf", "total_sebelum", "total_sesudah", "selisih_total",
+        "region_sebelum", "region_sesudah", "selisih_region", "avgconf_sebelum",
+        "avgconf_sesudah", "selisih_avgconf",
+    ]
+    numeric_fields = fields[5:]
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Laporan"
+    sheet.append(headers)
+
+    for row in rows:
+        values = [row.get(field) for field in fields]
+        for index in range(5, len(values)):
+            values[index] = _report_number(row, fields[index])
+        sheet.append(values)
+    _style_excel_header(sheet)
+    sheet.freeze_panes = "A2"
+    sheet.auto_filter.ref = f"A1:P{max(1, len(rows) + 1)}"
+
+    # Hitung rata-rata di Python agar tetap langsung terbaca oleh pembaca XLSX.
+    average_row = ["Rata-rata"] + [None] * (len(fields) - 1)
+    for column_index, field in enumerate(numeric_fields, start=6):
+        numbers = [number for row in rows if (number := _report_number(row, field)) is not None]
+        average_row[column_index - 1] = sum(numbers) / len(numbers) if numbers else None
+    sheet.append(average_row)
+    footer_index = sheet.max_row
+    for cell in sheet[footer_index]:
+        cell.fill = PatternFill(fill_type="solid", fgColor="E7EEF9")
+        cell.font = Font(bold=True, color="182131")
+
+    for row_index in range(2, sheet.max_row + 1):
+        for column_index in (6, 7, 14, 15, 16):
+            sheet.cell(row_index, column_index).number_format = "0.00"
+        sheet.cell(row_index, 16).number_format = "+0.00;-0.00;0.00"
+    _fit_excel_columns(sheet)
+
+    # Kelompokkan tiga metrik selisih untuk ringkasan masing-masing metode.
+    groups = defaultdict(list)
+    for row in rows:
+        groups[row.get("metode_enhancement") or "none"].append(row)
+    summary = workbook.create_sheet("Ringkasan")
+    summary.append([
+        "Metode enhancement", "Jumlah laporan", "Rata-rata selisih total",
+        "Rata-rata selisih region", "Rata-rata selisih avg conf",
+    ])
+    for method in sorted(groups):
+        method_rows = groups[method]
+        averages = []
+        for field in ("selisih_total", "selisih_region", "selisih_avgconf"):
+            numbers = [number for row in method_rows if (number := _report_number(row, field)) is not None]
+            averages.append(sum(numbers) / len(numbers) if numbers else None)
+        summary.append([method, len(method_rows), *averages])
+    _style_excel_header(summary)
+    summary.freeze_panes = "A2"
+    for row_index in range(2, summary.max_row + 1):
+        for column_index in range(3, 6):
+            summary.cell(row_index, column_index).number_format = "0.00"
+    _fit_excel_columns(summary)
+
+    output = io.BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    return output
+
+
+@app.get("/api/export_excel")
+def export_excel():
+    """Ekspor log laporan menjadi workbook dengan lembar data dan ringkasan."""
+    with REPORT_LOCK:
+        rows = _read_report_rows()
+    try:
+        output = _make_report_workbook(rows)
+    except Exception as error:
+        logger.exception("Workbook laporan gagal dibuat")
+        return jsonify({"error": f"File Excel gagal dibuat: {error}"}), 500
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name="laporan-enhancement.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
 
 @app.post("/api/settings")

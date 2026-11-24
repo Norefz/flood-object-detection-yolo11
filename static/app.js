@@ -464,7 +464,9 @@ function formatDate(value) {
   if (!value || typeof value !== "string") return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  }).format(date);
 }
 
 function makeCell(text, className = "") {
@@ -472,6 +474,13 @@ function makeCell(text, className = "") {
   cell.textContent = text;
   if (className) cell.className = className;
   return cell;
+}
+
+function reportComparison(before, after, difference, formatter) {
+  if (before == null && after == null) return "—";
+  const delta = difference == null ? Number(after || 0) - Number(before || 0) : Number(difference);
+  const sign = delta > 0 ? "+" : "";
+  return `${formatter(before)} → ${formatter(after)} (Δ ${sign}${formatter(delta)})`;
 }
 
 function renderModels() {
@@ -926,20 +935,27 @@ async function loadReport() {
     elements.reportBody.replaceChildren();
     if (!rows.length) {
       const row = document.createElement("tr");
-      const cell = makeCell("Belum ada laporan deteksi.", "table-empty");
+      const cell = makeCell("Belum ada laporan enhancement sebelum/sesudah.", "table-empty");
       cell.colSpan = 8;
       row.append(cell);
       elements.reportBody.append(row);
     } else {
       rows.forEach((item) => {
         const row = document.createElement("tr");
-        row.append(makeCell(formatDate(item.created_at || item.date)));
-        row.append(makeCell(item.file_name || item.filename || item.file || "—", "report-file"));
-        row.append(makeCell(item.type || item.kind || "Foto"));
-        row.append(makeCell(item.enhance || item.method || "none"));
-        row.append(makeCell(String(item.total ?? "—"), "numeric-cell"));
-        row.append(makeCell(String(item.inside_region ?? item.inside ?? "—"), "numeric-cell"));
-        row.append(makeCell(formatMetric(item.avg_conf ?? item.avg_confidence), "numeric-cell"));
+        const method = item.metode_enhancement || item.enhance || item.method || "none";
+        const brightness = Number(item.brightness || 0);
+        const confidence = item.conf ?? item.confidence;
+        const type = item.jenis || item.type || item.kind || "foto";
+        const typeLabel = String(type).toLowerCase() === "video" ? "Video" : "Foto";
+        const countFormat = (value) => value == null ? "—" : String(Math.round(Number(value)));
+        const confidenceFormat = (value) => value == null ? "—" : formatMetric(value);
+        row.append(makeCell(formatDate(item.waktu || item.created_at || item.date)));
+        row.append(makeCell(item.nama_file || item.file_name || item.filename || item.file || "—", "report-file"));
+        row.append(makeCell(typeLabel));
+        row.append(makeCell(`${method} · ${brightness > 0 ? "+" : ""}${brightness} · conf ${confidence == null ? "—" : formatMetric(confidence)}`));
+        row.append(makeCell(reportComparison(item.total_sebelum ?? item.baseline?.total, item.total_sesudah ?? item.total, item.selisih_total, countFormat), "numeric-cell"));
+        row.append(makeCell(reportComparison(item.region_sebelum ?? item.baseline?.inside_region, item.region_sesudah ?? item.inside_region, item.selisih_region, countFormat), "numeric-cell"));
+        row.append(makeCell(reportComparison(item.avgconf_sebelum ?? item.baseline?.avg_conf, item.avgconf_sesudah ?? item.avg_conf, item.selisih_avgconf, confidenceFormat), "numeric-cell"));
         row.append(makeCell(item.model || "—", "report-model"));
         elements.reportBody.append(row);
       });
