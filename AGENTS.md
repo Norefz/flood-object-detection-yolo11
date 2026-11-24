@@ -14,7 +14,7 @@ Fitur aplikasi yang direncanakan:
 
 - Kerjakan hanya bagian yang diminta pengguna; jangan ubah file lain.
 - Beri komentar singkat dalam bahasa Indonesia.
-- Gunakan HTML, CSS, dan JavaScript biasa tanpa framework.
+- Gunakan HTML dan JavaScript biasa tanpa framework JavaScript; Tailwind CSS boleh dipakai untuk styling frontend.
 
 ## Kontrak API
 
