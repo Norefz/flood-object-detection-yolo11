@@ -651,8 +651,8 @@ summary:focus-visible,
   position: relative;
 }
 
-/* Elemen sumber hanya dipakai untuk membaca frame pertama ke canvas region. */
-.region-preview-stage {
+/* Wadah preview foto atau video yang diunggah. */
+.media-preview-stage {
   position: relative;
   display: grid;
   width: 100%;
@@ -662,7 +662,7 @@ summary:focus-visible,
   background: #DED6C1;
 }
 
-.region-preview-media {
+.media-preview-item {
   grid-area: 1 / 1;
   display: block;
   width: 100%;
@@ -671,22 +671,8 @@ summary:focus-visible,
   object-fit: contain;
 }
 
-video.region-preview-media {
+video.media-preview-item {
   background: #171612;
-}
-
-#region-canvas {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.region-preview-stage.is-drawing-region #region-canvas {
-  cursor: crosshair;
-  pointer-events: auto;
 }
 
 .video-progress {
@@ -758,25 +744,6 @@ video.region-preview-media {
   border-radius: 10px;
   color: var(--muted);
   font-size: 13px;
-}
-
-/* =========================================================
-   REGION EDITOR
-   ========================================================= */
-
-#region-editor {
-  border: 1px solid var(--glass-border);
-
-  border-radius: 16px;
-
-  background:
-    rgba(255, 253, 247, 0.66);
-
-  box-shadow:
-    var(--shadow-glass);
-
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
 }
 
 /* =========================================================

@@ -153,8 +153,6 @@ def _make_enhancement_report(file_name, kind, model_name, method, brightness, co
     """Satukan angka sebelum/sesudah dan hitung selisih sesudah dikurangi sebelum."""
     before_total = int(baseline["total"])
     after_total = int(result["total"])
-    before_region = int(baseline["inside_region"])
-    after_region = int(result["inside_region"])
     before_conf = float(baseline["avg_conf"])
     after_conf = float(result["avg_conf"])
     return {
@@ -168,9 +166,6 @@ def _make_enhancement_report(file_name, kind, model_name, method, brightness, co
         "total_sebelum": before_total,
         "total_sesudah": after_total,
         "selisih_total": after_total - before_total,
-        "region_sebelum": before_region,
-        "region_sesudah": after_region,
-        "selisih_region": after_region - before_region,
         "avgconf_sebelum": before_conf,
         "avgconf_sesudah": after_conf,
         "selisih_avgconf": after_conf - before_conf,
@@ -1144,14 +1139,12 @@ def _make_report_workbook(rows):
     headers = [
         "Waktu", "Nama file", "Jenis", "Model", "Metode enhancement",
         "Brightness", "Confidence", "Total sebelum", "Total sesudah",
-        "Selisih total", "Region sebelum", "Region sesudah", "Selisih region",
-        "Avg conf sebelum", "Avg conf sesudah", "Selisih avg conf",
+        "Selisih total", "Avg conf sebelum", "Avg conf sesudah", "Selisih avg conf",
     ]
     fields = [
         "waktu", "nama_file", "jenis", "model", "metode_enhancement",
         "brightness", "conf", "total_sebelum", "total_sesudah", "selisih_total",
-        "region_sebelum", "region_sesudah", "selisih_region", "avgconf_sebelum",
-        "avgconf_sesudah", "selisih_avgconf",
+        "avgconf_sebelum", "avgconf_sesudah", "selisih_avgconf",
     ]
     numeric_fields = fields[5:]
     workbook = Workbook()
@@ -1166,7 +1159,7 @@ def _make_report_workbook(rows):
         sheet.append(values)
     _style_excel_header(sheet)
     sheet.freeze_panes = "A2"
-    sheet.auto_filter.ref = f"A1:P{max(1, len(rows) + 1)}"
+    sheet.auto_filter.ref = f"A1:M{max(1, len(rows) + 1)}"
 
     # Hitung rata-rata di Python agar tetap langsung terbaca oleh pembaca XLSX.
     average_row = ["Rata-rata"] + [None] * (len(fields) - 1)
@@ -1180,9 +1173,9 @@ def _make_report_workbook(rows):
         cell.font = Font(bold=True, color="182131")
 
     for row_index in range(2, sheet.max_row + 1):
-        for column_index in (6, 7, 14, 15, 16):
+        for column_index in (6, 7, 11, 12, 13):
             sheet.cell(row_index, column_index).number_format = "0.00"
-        sheet.cell(row_index, 16).number_format = "+0.00;-0.00;0.00"
+        sheet.cell(row_index, 13).number_format = "+0.00;-0.00;0.00"
     _fit_excel_columns(sheet)
 
     # Kelompokkan tiga metrik selisih untuk ringkasan masing-masing metode.
@@ -1192,19 +1185,19 @@ def _make_report_workbook(rows):
     summary = workbook.create_sheet("Ringkasan")
     summary.append([
         "Metode enhancement", "Jumlah laporan", "Rata-rata selisih total",
-        "Rata-rata selisih region", "Rata-rata selisih avg conf",
+        "Rata-rata selisih avg conf",
     ])
     for method in sorted(groups):
         method_rows = groups[method]
         averages = []
-        for field in ("selisih_total", "selisih_region", "selisih_avgconf"):
+        for field in ("selisih_total", "selisih_avgconf"):
             numbers = [number for row in method_rows if (number := _report_number(row, field)) is not None]
             averages.append(sum(numbers) / len(numbers) if numbers else None)
         summary.append([method, len(method_rows), *averages])
     _style_excel_header(summary)
     summary.freeze_panes = "A2"
     for row_index in range(2, summary.max_row + 1):
-        for column_index in range(3, 6):
+        for column_index in range(3, 5):
             summary.cell(row_index, column_index).number_format = "0.00"
     _fit_excel_columns(summary)
 

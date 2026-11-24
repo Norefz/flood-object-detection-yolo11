@@ -168,22 +168,16 @@ def draw_tracking_frame(img, detections, poly, stats):
 
     # Panel transparan menjaga angka terbaca di atas latar video yang beragam.
     overlay = output.copy()
-    cv2.rectangle(overlay, (10, 10), (285, 105), (18, 27, 38), -1)
+    cv2.rectangle(overlay, (10, 10), (240, 52), (18, 27, 38), -1)
     output = cv2.addWeighted(overlay, 0.72, output, 0.28, 0)
-    labels = (
-        f"Di region sekarang: {stats['inside_now']}",
-        f"Pernah masuk region: {stats['entered_region']}",
+    cv2.putText(
+        output,
         f"Total ID unik: {stats['unique_total']}",
+        (20, 37),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.58,
+        (255, 255, 255),
+        1,
+        cv2.LINE_AA,
     )
-    for index, label in enumerate(labels):
-        cv2.putText(
-            output,
-            label,
-            (20, 34 + index * 29),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.58,
-            (255, 255, 255),
-            1,
-            cv2.LINE_AA,
-        )
     return output

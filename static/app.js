@@ -7,9 +7,9 @@ const api = (() => {
   let mockConf = 0.25;
   let mockJobs = new Map();
   let mockReport = [
-    { created_at: new Date(Date.now() - 22 * 60 * 1000).toISOString(), file_name: "simpang-barat.jpg", type: "Foto", enhance: "clahe", total: 8, inside_region: 5, avg_conf: 0.84, model: "yolo11_vehicle.pt" },
-    { created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), file_name: "akses-pasar.png", type: "Foto", enhance: "none", total: 4, inside_region: 3, avg_conf: 0.79, model: "yolo11_vehicle.pt" },
-    { created_at: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(), file_name: "jalan-utara.mp4", type: "Video", enhance: "he", total: 16, inside_region: 11, avg_conf: 0.87, model: "yolo11_vehicle.pt" },
+    { created_at: new Date(Date.now() - 22 * 60 * 1000).toISOString(), file_name: "simpang-barat.jpg", type: "Foto", enhance: "clahe", total: 8, avg_conf: 0.84, model: "yolo11_vehicle.pt" },
+    { created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), file_name: "akses-pasar.png", type: "Foto", enhance: "none", total: 4, avg_conf: 0.79, model: "yolo11_vehicle.pt" },
+    { created_at: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(), file_name: "jalan-utara.mp4", type: "Video", enhance: "he", total: 16, avg_conf: 0.87, model: "yolo11_vehicle.pt" },
   ];
 
   async function request(url, options = {}) {
@@ -30,8 +30,8 @@ const api = (() => {
   function xlsxBlob(rows) {
     const encoder = new TextEncoder();
     const xmlEscape = (value) => String(value ?? "").replace(/[&<>\"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[character]));
-    const headers = ["Tanggal", "File", "Jenis", "Enhancement", "Total", "Di dalam region", "Avg. confidence", "Model"];
-    const values = [headers, ...rows.map((row) => [row.created_at, row.file_name, row.type, row.enhance, row.total, row.inside_region, row.avg_conf, row.model])];
+    const headers = ["Tanggal", "File", "Jenis", "Enhancement", "Total", "Avg. confidence", "Model"];
+    const values = [headers, ...rows.map((row) => [row.created_at, row.file_name, row.type, row.enhance, row.total, row.avg_conf, row.model])];
     const columnName = (number) => {
       let name = "";
       for (number += 1; number > 0; number = Math.floor((number - 1) / 26)) name = String.fromCharCode(65 + ((number - 1) % 26)) + name;
@@ -177,17 +177,15 @@ const api = (() => {
       });
     },
 
-    async detectImage({ file, conf, enhance = "none", brightness = 0, region = "" }) {
+    async detectImage({ file, conf, enhance = "none", brightness = 0 }) {
       if (USE_MOCK) {
         const imageUrl = URL.createObjectURL(file);
         const total = Math.floor(Math.random() * 10) + 3;
-        const insideRegion = region ? Math.floor(Math.random() * (total + 1)) : 0;
         const avgConf = Number((0.68 + Math.random() * 0.27).toFixed(2));
         const baselineTotal = Math.max(0, total + Math.floor(Math.random() * 5) - 2);
         const baseline = enhance !== "none" || Number(brightness) !== 0
           ? {
             total: baselineTotal,
-            inside_region: region ? Math.floor(Math.random() * (baselineTotal + 1)) : 0,
             avg_conf: Number((0.65 + Math.random() * 0.28).toFixed(2)),
           }
           : null;
@@ -196,7 +194,6 @@ const api = (() => {
           enhanced_url: imageUrl,
           result_url: imageUrl,
           total,
-          inside_region: insideRegion,
           avg_conf: avgConf,
           baseline,
           model: mockActive,
@@ -206,7 +203,6 @@ const api = (() => {
           type: "Foto",
           enhance,
           total,
-          inside_region: insideRegion,
           avg_conf: avgConf,
           model: mockActive,
         });
@@ -217,11 +213,10 @@ const api = (() => {
       form.append("conf", String(conf));
       form.append("enhance", enhance);
       form.append("brightness", String(brightness));
-      form.append("region", region);
       return request("/api/detect_image", { method: "POST", body: form });
     },
 
-    async processVideo({ file, conf, enhance = "none", brightness = 0, region = "" }) {
+    async processVideo({ file, conf, enhance = "none", brightness = 0 }) {
       if (USE_MOCK) {
         const jobId = `mock-${Date.now()}`;
         mockJobs.set(jobId, {
@@ -230,14 +225,13 @@ const api = (() => {
           file_name: file.name,
           enhance,
           brightness,
-          region,
           model: mockActive,
           status: "queued",
           percent: 0,
           result_url: URL.createObjectURL(file),
-          stats: { inside_now: 0, entered_region: 0, unique_total: 0 },
+          stats: { unique_total: 0 },
           baseline: enhance !== "none" || Number(brightness) !== 0
-            ? { total: 9, inside_region: region ? 6 : 0, avg_conf: 0.78 }
+            ? { total: 9, avg_conf: 0.78 }
             : null,
           message: "Video masuk antrean.",
         });
@@ -248,7 +242,6 @@ const api = (() => {
       form.append("conf", String(conf));
       form.append("enhance", enhance);
       form.append("brightness", String(brightness));
-      form.append("region", region);
       return request("/api/process_video", { method: "POST", body: form });
     },
 
@@ -259,7 +252,7 @@ const api = (() => {
           status: "error",
           percent: 0,
           result_url: null,
-          stats: { inside_now: 0, entered_region: 0, unique_total: 0 },
+          stats: { unique_total: 0 },
           baseline: null,
           message: "Pekerjaan video tidak ditemukan.",
         };
@@ -269,18 +262,13 @@ const api = (() => {
           job.percent = steps[Math.min(job.polls - 1, steps.length - 1)];
           job.status = job.percent === 100 ? "done" : "running";
           job.message = job.status === "done" ? "Pemrosesan video selesai." : `Memproses video (${job.percent}%).`;
-          job.stats = {
-            inside_now: job.region ? (job.status === "done" ? 2 : Math.min(4, job.polls)) : 0,
-            entered_region: job.region ? (job.status === "done" ? 9 : Math.min(8, job.polls * 2)) : 0,
-            unique_total: job.status === "done" ? 14 : Math.min(12, job.polls * 3),
-          };
+          job.stats = { unique_total: job.status === "done" ? 14 : Math.min(12, job.polls * 3) };
           if (job.status === "done" && !job.reported) {
             addReportRow({
               file_name: job.file_name,
               type: "Video",
               enhance: job.enhance,
               total: job.stats.unique_total,
-              inside_region: job.stats.entered_region,
               avg_conf: 0.83,
               model: job.model,
             });
@@ -336,10 +324,7 @@ const state = {
   detectSequence: 0,
   enhancement: "none",
   brightness: 0,
-  regions: { foto: [], video: [] },
-  editorType: null,
-  editorImage: null,
-  drawingRegion: false,
+  previewType: null,
   videoFile: null,
   videoSourceUrl: null,
   videoResultUrl: null,
@@ -358,18 +343,12 @@ const elements = {
   photoInput: document.getElementById("photo-file-input"),
   dropzone: document.getElementById("photo-dropzone"),
   photoFileName: document.getElementById("photo-file-name"),
-  photoRegionSlot: document.getElementById("photo-region-slot"),
-  videoRegionSlot: document.getElementById("video-region-slot"),
-  regionEditor: document.getElementById("region-editor"),
-  regionPreviewStage: document.getElementById("region-preview-stage"),
-  regionPhotoPreview: document.getElementById("region-photo-preview"),
-  regionCanvas: document.getElementById("region-canvas"),
-  regionPointCount: document.getElementById("region-point-count"),
-  regionHelp: document.getElementById("region-help"),
-  regionStatus: document.getElementById("region-status"),
-  drawRegion: document.getElementById("draw-region-button"),
-  finishRegion: document.getElementById("finish-region-button"),
-  resetRegion: document.getElementById("reset-region-button"),
+  photoPreviewSlot: document.getElementById("photo-preview-slot"),
+  videoPreviewSlot: document.getElementById("video-preview-slot"),
+  mediaPreview: document.getElementById("media-preview"),
+  mediaPreviewTitle: document.getElementById("media-preview-title"),
+  mediaPreviewHelp: document.getElementById("media-preview-help"),
+  photoPreview: document.getElementById("photo-preview"),
   enhancement: document.getElementById("enhancement-select"),
   brightness: document.getElementById("brightness-slider"),
   brightnessValue: document.getElementById("brightness-value"),
@@ -392,7 +371,6 @@ const elements = {
   rubbishCount: document.getElementById("count-rubbish"),
   vehicleCount: document.getElementById("count-vehicle"),
   personCount: document.getElementById("count-person"),
-  insideCount: document.getElementById("inside-count"),
   averageConfidence: document.getElementById("average-confidence"),
   resultModel: document.getElementById("result-model"),
   redetect: document.getElementById("redetect-button"),
@@ -400,8 +378,6 @@ const elements = {
   comparisonMethod: document.getElementById("comparison-method"),
   baselineTotal: document.getElementById("baseline-total"),
   afterTotal: document.getElementById("after-total"),
-  baselineInside: document.getElementById("baseline-inside"),
-  afterInside: document.getElementById("after-inside"),
   baselineConfidence: document.getElementById("baseline-confidence"),
   afterConfidence: document.getElementById("after-confidence"),
   comparisonOriginal: document.getElementById("comparison-original"),
@@ -422,8 +398,6 @@ const elements = {
   progressBar: document.getElementById("progress-bar"),
   videoResult: document.getElementById("video-result"),
   outputVideo: document.getElementById("output-video"),
-  videoInsideNow: document.getElementById("video-inside-now"),
-  videoEnteredRegion: document.getElementById("video-entered-region"),
   videoUniqueTotal: document.getElementById("video-unique-total"),
   videoClassCounts: document.getElementById("video-class-counts"),
   videoBaseline: document.getElementById("video-baseline"),
@@ -464,7 +438,7 @@ function setTab(tabName) {
   elements.panels.forEach((panel) => {
     panel.hidden = panel.dataset.panel !== tabName;
   });
-  updateRegionEditorLocation();
+  updateMediaPreviewLocation();
   if (tabName === "laporan") loadReport();
 }
 
@@ -500,7 +474,7 @@ function renderModels() {
   elements.photoWorkspace.hidden = !active;
   elements.videoNoModel.hidden = Boolean(active);
   elements.videoWorkspace.hidden = !active;
-  updateRegionEditorLocation();
+  updateMediaPreviewLocation();
   elements.modelCount.textContent = `${state.models.length} model`;
   elements.modelTable.replaceChildren();
 
@@ -595,13 +569,6 @@ function setDetectionLoading(isLoading) {
   elements.dropzone.classList.toggle("is-disabled", isLoading);
 }
 
-function regionPayload(type) {
-  const points = state.regions[type] || [];
-  return points.length >= 3 && !(state.editorType === type && state.drawingRegion)
-    ? JSON.stringify(points)
-    : "";
-}
-
 function formatMetric(value, places = 2) {
   return value == null ? "—" : Number(value).toFixed(places).replace(".", ",");
 }
@@ -614,8 +581,6 @@ function showImageComparison(result) {
   elements.comparisonMethod.textContent = `${state.enhancement.toUpperCase()} · brightness ${state.brightness > 0 ? "+" : ""}${state.brightness}`;
   elements.baselineTotal.textContent = String(baseline.total ?? "—");
   elements.afterTotal.textContent = String(result.total ?? "—");
-  elements.baselineInside.textContent = String(baseline.inside_region ?? "—");
-  elements.afterInside.textContent = String(result.inside_region ?? "—");
   elements.baselineConfidence.textContent = formatMetric(baseline.avg_conf);
   elements.afterConfidence.textContent = formatMetric(result.avg_conf);
   elements.comparisonOriginal.src = result.original_url || "";
@@ -709,7 +674,6 @@ async function runDetection() {
       conf: state.confidence,
       enhance: state.enhancement,
       brightness: state.brightness,
-      region: regionPayload("foto"),
     });
     if (requestId !== state.detectSequence) {
       if (USE_MOCK && result.result_url) URL.revokeObjectURL(result.result_url);
@@ -720,7 +684,6 @@ async function runDetection() {
     elements.resultImage.src = result.result_url || result.original_url;
     elements.totalCount.textContent = String(result.total ?? 0);
     updateObjectCounts(result);
-    elements.insideCount.textContent = String(result.inside_region ?? 0);
     elements.averageConfidence.textContent = result.avg_conf == null ? "—" : formatDecimal(result.avg_conf);
     elements.resultModel.textContent = result.model || state.activeModel || "—";
     showImageComparison(result);
@@ -746,24 +709,19 @@ function selectPhoto(file) {
   state.mockResultUrl = null;
   state.currentFile = file;
   state.previewUrl = URL.createObjectURL(file);
-  elements.regionPhotoPreview.src = state.previewUrl;
-  elements.regionPhotoPreview.hidden = false;
+  state.previewType = "foto";
+  elements.photoPreview.src = state.previewUrl;
+  elements.photoPreview.hidden = false;
   elements.sourceVideo.hidden = true;
-  state.regions.foto = [];
-  state.editorType = "foto";
-  state.drawingRegion = false;
-  state.editorImage = new Image();
-  state.editorImage.onload = () => {
-    configureCanvasSource(state.editorImage, state.editorImage.naturalWidth, state.editorImage.naturalHeight);
-    updateRegionEditorLocation();
-    runDetection();
-  };
-  state.editorImage.onerror = () => {
+  updateMediaPreviewLocation();
+  const previewImage = new Image();
+  previewImage.onload = runDetection;
+  previewImage.onerror = () => {
     elements.imageLoading.hidden = true;
     elements.error.textContent = "Foto tidak dapat dibuka. Pilih file gambar lain.";
     elements.error.hidden = false;
   };
-  state.editorImage.src = state.previewUrl;
+  previewImage.src = state.previewUrl;
   elements.resultImage.src = state.previewUrl;
   elements.resultImage.alt = `Pratinjau foto ${file.name}`;
   elements.photoFileName.textContent = file.name;
@@ -784,137 +742,28 @@ function selectPhoto(file) {
   if (elements.personCount) {
     elements.personCount.textContent = "—";
   }
-  elements.insideCount.textContent = "—";
   elements.averageConfidence.textContent = "—";
   elements.resultModel.textContent = state.activeModel || "—";
   elements.resultSection.hidden = false;
   elements.comparison.hidden = true;
   elements.error.hidden = true;
   elements.imageLoading.hidden = false;
-  elements.regionStatus.textContent = "Belum ada region.";
-  updateRegionControls();
 }
 
-function currentRegion() {
-  return state.editorType ? state.regions[state.editorType] : [];
-}
-
-function configureCanvasSource(source, width, height) {
-  if (!source || !width || !height) return false;
-  const maxSide = 1600;
-  const scale = Math.min(1, maxSide / Math.max(width, height));
-  elements.regionCanvas.width = Math.max(1, Math.round(width * scale));
-  elements.regionCanvas.height = Math.max(1, Math.round(height * scale));
-  state.editorImage = source;
-  drawRegionCanvas();
-  return true;
-}
-
-function drawRegionCanvas() {
-  if (!state.editorImage || !elements.regionCanvas.width || !elements.regionCanvas.height) return;
-  const canvas = elements.regionCanvas;
-  const context = canvas.getContext("2d");
-  context.clearRect(0, 0, canvas.width, canvas.height);
-
-  const points = currentRegion();
-  if (points.length) {
-    context.beginPath();
-    context.moveTo(points[0][0] * canvas.width, points[0][1] * canvas.height);
-    points.slice(1).forEach(([x, y]) => context.lineTo(x * canvas.width, y * canvas.height));
-    if (points.length >= 3) {
-      context.closePath();
-      context.fillStyle = "rgba(29, 95, 191, 0.22)";
-      context.fill();
-    }
-    context.strokeStyle = "rgba(29, 95, 191, 0.95)";
-    context.lineWidth = Math.max(2, canvas.width / 600);
-    context.stroke();
-
-    points.forEach(([x, y]) => {
-      context.beginPath();
-      context.arc(x * canvas.width, y * canvas.height, Math.max(4, canvas.width / 180), 0, Math.PI * 2);
-      context.fillStyle = "#ffffff";
-      context.fill();
-      context.strokeStyle = "#1d5fbf";
-      context.lineWidth = 2;
-      context.stroke();
-    });
-  }
-}
-
-function updateRegionControls() {
-  const count = currentRegion().length;
-  elements.regionPreviewStage.classList.toggle("is-drawing-region", state.drawingRegion);
-  elements.regionPointCount.textContent = `${count} titik`;
-  elements.finishRegion.disabled = !state.drawingRegion || count < 3;
-  elements.drawRegion.textContent = state.drawingRegion ? "Sedang menggambar…" : "Gambar Region";
-  elements.drawRegion.setAttribute("aria-pressed", String(state.drawingRegion));
-}
-
-function updateRegionEditorLocation() {
-  const type = state.editorType;
-  if (!type || !state.editorImage) {
-    elements.regionEditor.hidden = true;
+function updateMediaPreviewLocation() {
+  const type = state.previewType;
+  const hasMedia = type === "foto" ? Boolean(state.currentFile) : Boolean(state.videoFile);
+  const destination = type === "foto" ? elements.photoPreviewSlot : elements.videoPreviewSlot;
+  if (!type || !hasMedia || !state.activeModel || state.activeTab !== type || !destination) {
+    elements.mediaPreview.hidden = true;
     return;
   }
-  const expectedTab = type === "foto" ? "foto" : "video";
-  const destination = type === "foto" ? elements.photoRegionSlot : elements.videoRegionSlot;
-  if (state.activeTab !== expectedTab || !state.activeModel || !destination) {
-    elements.regionEditor.hidden = true;
-    return;
-  }
-  destination.append(elements.regionEditor);
-  elements.regionEditor.hidden = false;
-  elements.regionHelp.textContent = type === "foto"
-    ? "Region opsional. Klik Gambar Region, lalu pilih minimal tiga titik pada foto."
-    : "Frame pertama video ditampilkan di sini. Gambar satu region dengan minimal tiga titik.";
-  updateRegionControls();
-}
-
-function addRegionPoint(event) {
-  if (!state.drawingRegion || !state.editorType) return;
-  const bounds = elements.regionCanvas.getBoundingClientRect();
-  if (!bounds.width || !bounds.height) return;
-  const x = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width));
-  const y = Math.min(1, Math.max(0, (event.clientY - bounds.top) / bounds.height));
-  currentRegion().push([Number(x.toFixed(5)), Number(y.toFixed(5))]);
-  drawRegionCanvas();
-  updateRegionControls();
-  elements.regionStatus.textContent = `${currentRegion().length} titik dipilih.`;
-}
-
-function startRegionDrawing() {
-  if (!state.editorType) return;
-  if (state.editorType === "video") elements.sourceVideo.pause();
-  state.regions[state.editorType] = [];
-  state.drawingRegion = true;
-  elements.regionStatus.textContent = "Klik titik-titik di foto untuk membentuk poligon.";
-  drawRegionCanvas();
-  updateRegionControls();
-}
-
-function finishRegionDrawing() {
-  if (currentRegion().length < 3) {
-    elements.regionStatus.textContent = "Pilih minimal tiga titik untuk menyelesaikan poligon.";
-    return;
-  }
-  state.drawingRegion = false;
-  elements.regionStatus.textContent = `Region tersimpan dengan ${currentRegion().length} titik.`;
-  drawRegionCanvas();
-  updateRegionControls();
-  if (state.editorType === "foto") scheduleDetection();
-  if (state.editorType === "video") elements.videoProcessHint.textContent = "Region siap. Tekan Proses video untuk mulai.";
-}
-
-function resetRegion() {
-  if (!state.editorType) return;
-  state.regions[state.editorType] = [];
-  state.drawingRegion = false;
-  elements.regionStatus.textContent = "Region dihapus.";
-  drawRegionCanvas();
-  updateRegionControls();
-  if (state.editorType === "foto") scheduleDetection();
-  if (state.editorType === "video") elements.videoProcessHint.textContent = "Region dikosongkan; video dapat diproses tanpa region.";
+  destination.append(elements.mediaPreview);
+  elements.mediaPreview.hidden = false;
+  elements.mediaPreviewTitle.textContent = type === "foto" ? "Preview Foto" : "Preview Video";
+  elements.mediaPreviewHelp.textContent = type === "foto"
+    ? "Pratinjau foto yang diunggah."
+    : "Pratinjau video yang diunggah.";
 }
 
 function scheduleDetection() {
@@ -933,13 +782,10 @@ function setVideoSource(file) {
   if (USE_MOCK && state.videoResultUrl) URL.revokeObjectURL(state.videoResultUrl);
   state.videoResultUrl = null;
   state.videoFile = file;
-  state.regions.video = [];
-  state.editorType = "video";
-  state.editorImage = null;
-  elements.regionPhotoPreview.hidden = true;
+  state.previewType = "video";
+  elements.photoPreview.hidden = true;
   elements.sourceVideo.hidden = false;
-  state.drawingRegion = false;
-  elements.regionStatus.textContent = "Belum ada region.";
+  updateMediaPreviewLocation();
   elements.videoError.hidden = true;
   elements.videoResult.hidden = true;
   elements.videoProgress.hidden = true;
@@ -963,17 +809,8 @@ function setVideoSource(file) {
     }
 
     video.pause();
-    state.editorImage = video;
-    updateRegionEditorLocation();
-    if (!configureCanvasSource(video, video.videoWidth, video.videoHeight)) return;
-    window.requestAnimationFrame(() => {
-      if (state.videoFile !== file) return;
-      drawRegionCanvas();
-      elements.processVideo.disabled = false;
-      elements.videoProcessHint.textContent = "Frame pertama siap. Region bersifat opsional.";
-      elements.regionStatus.textContent = "Belum ada region.";
-      updateRegionControls();
-    });
+    elements.processVideo.disabled = false;
+    elements.videoProcessHint.textContent = "Video siap diproses.";
   };
   elements.sourceVideo.onloadeddata = () => {
     if (!state.videoFile || state.videoFile !== file) return;
@@ -1030,13 +867,11 @@ async function pollVideoProgress(jobId, sequence) {
       state.videoResultUrl = progress.result_url;
       elements.outputVideo.src = progress.result_url;
       elements.outputVideo.load();
-      elements.videoInsideNow.textContent = String(progress.stats?.inside_now ?? 0);
-      elements.videoEnteredRegion.textContent = String(progress.stats?.entered_region ?? 0);
       elements.videoUniqueTotal.textContent = String(progress.stats?.unique_total ?? 0);
       renderVideoClassCounts(progress.stats?.class_counts);
       elements.videoBaseline.hidden = !progress.baseline;
       elements.videoBaseline.textContent = progress.baseline
-        ? `Sebelum enhancement: ${progress.baseline.total} object, ${progress.baseline.inside_region} di region, confidence ${formatDecimal(progress.baseline.avg_conf)}.`
+        ? `Sebelum enhancement: ${progress.baseline.total} objek, confidence ${formatDecimal(progress.baseline.avg_conf)}.`
         : "";
       elements.videoResult.hidden = false;
       elements.processVideo.disabled = false;
@@ -1068,7 +903,6 @@ async function processVideo() {
       conf: state.confidence,
       enhance: state.enhancement,
       brightness: state.brightness,
-      region: regionPayload("video"),
     });
     await pollVideoProgress(job.job_id, sequence);
   } catch (error) {
@@ -1089,7 +923,7 @@ async function loadReport() {
     if (!rows.length) {
       const row = document.createElement("tr");
       const cell = makeCell("Belum ada laporan enhancement sebelum/sesudah.", "table-empty");
-      cell.colSpan = 8;
+      cell.colSpan = 7;
       row.append(cell);
       elements.reportBody.append(row);
     } else {
@@ -1107,7 +941,6 @@ async function loadReport() {
         row.append(makeCell(typeLabel));
         row.append(makeCell(`${method} · ${brightness > 0 ? "+" : ""}${brightness} · conf ${confidence == null ? "—" : formatMetric(confidence)}`));
         row.append(makeCell(reportComparison(item.total_sebelum ?? item.baseline?.total, item.total_sesudah ?? item.total, item.selisih_total, countFormat), "numeric-cell"));
-        row.append(makeCell(reportComparison(item.region_sebelum ?? item.baseline?.inside_region, item.region_sesudah ?? item.inside_region, item.selisih_region, countFormat), "numeric-cell"));
         row.append(makeCell(reportComparison(item.avgconf_sebelum ?? item.baseline?.avg_conf, item.avgconf_sesudah ?? item.avg_conf, item.selisih_avgconf, confidenceFormat), "numeric-cell"));
         row.append(makeCell(item.model || "—", "report-model"));
         elements.reportBody.append(row);
@@ -1263,11 +1096,6 @@ function bindEvents() {
   elements.dropzone.addEventListener("drop", (event) => {
     selectPhoto(event.dataTransfer.files[0]);
   });
-
-  elements.regionCanvas.addEventListener("click", addRegionPoint);
-  elements.drawRegion.addEventListener("click", startRegionDrawing);
-  elements.finishRegion.addEventListener("click", finishRegionDrawing);
-  elements.resetRegion.addEventListener("click", resetRegion);
 
   elements.videoInput.addEventListener("change", () => {
     setVideoSource(elements.videoInput.files[0]);
