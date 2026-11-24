@@ -224,3 +224,9 @@ __marimo__/
 
 # Instruksi kerja lokal Codex
 /AGENTS.md
+
+# Bobot lokal dan hasil pemrosesan aplikasi
+/model/*
+!/model/.gitkeep
+/outputs/*
+!/outputs/.gitkeep
