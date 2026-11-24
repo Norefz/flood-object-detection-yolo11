@@ -338,7 +338,11 @@ def get_models():
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     models = []
     for model_path in sorted(MODEL_DIR.iterdir(), key=lambda path: path.name.lower()):
-        if not model_path.is_file() or model_path.suffix.lower() != ".pt":
+        if (
+            not model_path.is_file()
+            or model_path.name.startswith(".")
+            or model_path.suffix.lower() != ".pt"
+        ):
             continue
         stat = model_path.stat()
         models.append({
@@ -370,6 +374,7 @@ def upload_model():
     temp_path = None
     final_path = MODEL_DIR / model_name
     final_created = False
+    backup_path = None
     try:
         # Simpan upload ke file sementara agar file final hanya muncul setelah valid.
         with tempfile.NamedTemporaryFile(
@@ -390,17 +395,30 @@ def upload_model():
 
         # Serialisasi pergantian file, settings, dan state model aktif.
         with MODEL_LOCK:
-            if final_path.exists():
-                return jsonify({"ok": False, "error": "Model dengan nama tersebut sudah ada."}), 409
-            os.replace(temp_path, final_path)
-            temp_path = None
-            final_created = True
             try:
+                # Simpan versi lama sementara supaya bisa dipulihkan jika aktivasi gagal.
+                if final_path.exists():
+                    backup_path = MODEL_DIR / f".replace-{uuid.uuid4().hex}.bak"
+                    os.replace(final_path, backup_path)
+
+                # Ganti file model lama secara atomik dengan checkpoint yang sudah dimuat.
+                os.replace(temp_path, final_path)
+                temp_path = None
+                final_created = True
                 _set_active_model(model, model_name)
             except OSError as error:
-                final_path.unlink(missing_ok=True)
+                # Pulihkan file sebelumnya agar model yang lama tetap tersedia.
+                if final_created:
+                    final_path.unlink(missing_ok=True)
+                if backup_path and backup_path.exists():
+                    os.replace(backup_path, final_path)
                 final_created = False
                 return jsonify({"ok": False, "error": f"Gagal menyimpan pengaturan model: {error}"}), 500
+            if backup_path:
+                try:
+                    backup_path.unlink(missing_ok=True)
+                except OSError as error:
+                    logger.warning("Cadangan model lama gagal dibersihkan (%s): %s", backup_path, error)
 
         return jsonify({"ok": True, "active": model_name})
     except OSError as error:
@@ -411,7 +429,10 @@ def upload_model():
     finally:
         # Hapus file upload sementara setelah sukses maupun gagal.
         if temp_path and temp_path.exists():
-            temp_path.unlink()
+            try:
+                temp_path.unlink()
+            except OSError as error:
+                logger.warning("File sementara model gagal dibersihkan (%s): %s", temp_path, error)
 
 
 @app.post("/api/select_model")
