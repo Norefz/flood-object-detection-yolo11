@@ -554,23 +554,43 @@ def _prediction_data(model, image, conf, poly):
     if detected_boxes is None:
         xyxy = np.empty((0, 4), dtype=np.float32)
         confidences = np.empty((0,), dtype=np.float32)
+        class_ids = np.empty((0,), dtype=np.int64)
     else:
         # Pindahkan tensor Ultralytics ke NumPy agar pemrosesan OpenCV konsisten.
         xyxy = detected_boxes.xyxy.cpu().numpy()
         confidences = detected_boxes.conf.cpu().numpy()
+        raw_class_ids = getattr(detected_boxes, "cls", None)
+        class_ids = (
+            raw_class_ids.cpu().numpy().astype(np.int64)
+            if raw_class_ids is not None
+            else np.zeros(len(xyxy), dtype=np.int64)
+        )
 
     boxes = []
     inside_region = 0
-    for coordinates, confidence in zip(xyxy, confidences):
+    class_counts = {}
+    model_names = getattr(result, "names", None) or getattr(model, "names", {})
+    for coordinates, confidence, class_id in zip(xyxy, confidences, class_ids):
         x1, y1, x2, y2 = (float(value) for value in coordinates[:4])
         score = float(confidence)
-        boxes.append((x1, y1, x2, y2, score))
+        if isinstance(model_names, dict):
+            class_name = model_names.get(
+                int(class_id), model_names.get(str(int(class_id)), str(int(class_id)))
+            )
+        elif isinstance(model_names, (list, tuple)) and int(class_id) < len(model_names):
+            class_name = model_names[int(class_id)]
+        else:
+            class_name = str(int(class_id))
+        class_name = str(class_name)
+        boxes.append((x1, y1, x2, y2, score, class_name))
+        class_counts[class_name] = class_counts.get(class_name, 0) + 1
         if point_in_region(poly, (x1 + x2) / 2, (y1 + y2) / 2):
             inside_region += 1
 
     average_confidence = float(np.mean(confidences)) if len(confidences) else 0.0
     return boxes, {
         "total": len(boxes),
+        "class_counts": class_counts,
         "inside_region": inside_region,
         "avg_conf": round(average_confidence, 6),
     }
@@ -629,7 +649,7 @@ def detect_image():
         # Jalankan baseline hanya ketika metode enhancement dipilih.
         baseline = None
         try:
-            if method != "none":
+            if method != "none" or brightness != 0:
                 _, baseline = _prediction_data(model, image, conf, poly)
 
             # Terapkan enhancement, termasuk brightness, sebelum deteksi utama.
@@ -694,12 +714,16 @@ def _set_video_job(job_id, **changes):
             job.update(changes)
 
 
-def _video_stats(inside_now, entered_ids, seen_ids):
+def _video_stats(inside_now, entered_ids, seen_ids, seen_classes=None):
     """Bangun statistik frame sesuai respons endpoint progress."""
+    class_counts = {}
+    for class_name in (seen_classes or {}).values():
+        class_counts[class_name] = class_counts.get(class_name, 0) + 1
     return {
         "inside_now": int(inside_now),
         "entered_region": len(entered_ids),
         "unique_total": len(seen_ids),
+        "class_counts": class_counts,
     }
 
 
@@ -713,8 +737,9 @@ def _run_video_pass(job, model_source, frame_size, fps, frame_total, pass_index,
     writer = None
     seen_ids = set()
     entered_ids = set()
+    seen_classes = {}
     confidence_values = []
-    last_stats = _video_stats(0, entered_ids, seen_ids)
+    last_stats = _video_stats(0, entered_ids, seen_ids, seen_classes)
     processed = 0
     try:
         # Muat model setelah capture masuk try agar error tetap melepas file video.
@@ -760,9 +785,13 @@ def _run_video_pass(job, model_source, frame_size, fps, frame_total, pass_index,
             result = predictions[0] if predictions else None
             detections = tracked_detections(result)
             poly = region_to_pixels(job["region"], frame_size[0], frame_size[1])
-            inside_now = update_track_counts(detections, poly, seen_ids, entered_ids)
+            inside_now = update_track_counts(
+                detections, poly, seen_ids, entered_ids, seen_classes
+            )
             confidence_values.extend(detection[4] for detection in detections)
-            last_stats = _video_stats(inside_now, entered_ids, seen_ids)
+            last_stats = _video_stats(
+                inside_now, entered_ids, seen_ids, seen_classes
+            )
 
             # Tulis video hanya untuk lintasan enhancement yang menjadi hasil akhir.
             if writer is not None:
@@ -786,6 +815,7 @@ def _run_video_pass(job, model_source, frame_size, fps, frame_total, pass_index,
         "total": len(seen_ids),
         "inside_region": len(entered_ids),
         "avg_conf": round(average_confidence, 6),
+        "class_counts": last_stats["class_counts"],
     }
     return last_stats, summary
 
@@ -846,7 +876,7 @@ def _process_video_job(job):
             fps = 25.0
 
         # Baseline berjalan sebagai lintasan terpisah agar tracker tidak berbagi state.
-        pass_total = 2 if job["enhance"] != "none" else 1
+        pass_total = 2 if job["enhance"] != "none" or job["brightness"] != 0 else 1
         baseline = None
         if pass_total == 2:
             _set_video_job(job["job_id"], message="Menyiapkan baseline…")
@@ -1007,7 +1037,12 @@ def process_video():
         "status": "queued",
         "percent": 0,
         "result_url": None,
-        "stats": {"inside_now": 0, "entered_region": 0, "unique_total": 0},
+        "stats": {
+            "inside_now": 0,
+            "entered_region": 0,
+            "unique_total": 0,
+            "class_counts": {},
+        },
         "baseline": None,
         "message": "Video masuk antrean.",
     }
@@ -1036,7 +1071,12 @@ def video_progress(job_id):
                 "status": "error",
                 "percent": 0,
                 "result_url": None,
-                "stats": {"inside_now": 0, "entered_region": 0, "unique_total": 0},
+                "stats": {
+                    "inside_now": 0,
+                    "entered_region": 0,
+                    "unique_total": 0,
+                    "class_counts": {},
+                },
                 "baseline": None,
                 "message": "Pekerjaan video tidak ditemukan.",
             })

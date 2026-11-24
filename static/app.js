@@ -423,6 +423,7 @@ const elements = {
   videoInsideNow: document.getElementById("video-inside-now"),
   videoEnteredRegion: document.getElementById("video-entered-region"),
   videoUniqueTotal: document.getElementById("video-unique-total"),
+  videoClassCounts: document.getElementById("video-class-counts"),
   videoBaseline: document.getElementById("video-baseline"),
   reportBody: document.getElementById("report-table-body"),
   reportSummary: document.getElementById("report-summary"),
@@ -794,12 +795,14 @@ function currentRegion() {
 }
 
 function configureCanvasSource(source, width, height) {
+  if (!source || !width || !height) return false;
   const maxSide = 1600;
   const scale = Math.min(1, maxSide / Math.max(width, height));
   elements.regionCanvas.width = Math.max(1, Math.round(width * scale));
   elements.regionCanvas.height = Math.max(1, Math.round(height * scale));
   state.editorImage = source;
   drawRegionCanvas();
+  return true;
 }
 
 function drawRegionCanvas() {
@@ -936,15 +939,36 @@ function setVideoSource(file) {
   elements.processVideo.disabled = true;
   elements.videoProcessHint.textContent = "Memuat frame pertama…";
   state.videoSourceUrl = URL.createObjectURL(file);
+  const renderFirstFrame = (attempt = 0) => {
+    if (state.videoFile !== file) return;
+    const video = elements.sourceVideo;
+    if (video.readyState < 2 || !video.videoWidth || !video.videoHeight) {
+      if (attempt < 30) {
+        window.requestAnimationFrame(() => renderFirstFrame(attempt + 1));
+      } else {
+        elements.videoError.textContent = "Frame pertama video belum dapat dibaca. Coba format MP4 atau WebM.";
+        elements.videoError.hidden = false;
+        elements.videoProcessHint.textContent = "Frame video belum siap.";
+      }
+      return;
+    }
+
+    video.pause();
+    state.editorImage = video;
+    updateRegionEditorLocation();
+    if (!configureCanvasSource(video, video.videoWidth, video.videoHeight)) return;
+    window.requestAnimationFrame(() => {
+      if (state.videoFile !== file) return;
+      drawRegionCanvas();
+      elements.processVideo.disabled = false;
+      elements.videoProcessHint.textContent = "Frame pertama siap. Region bersifat opsional.";
+      elements.regionStatus.textContent = "Belum ada region.";
+      updateRegionControls();
+    });
+  };
   elements.sourceVideo.onloadeddata = () => {
     if (!state.videoFile || state.videoFile !== file) return;
-    elements.sourceVideo.pause();
-    configureCanvasSource(elements.sourceVideo, elements.sourceVideo.videoWidth, elements.sourceVideo.videoHeight);
-    updateRegionEditorLocation();
-    elements.processVideo.disabled = false;
-    elements.videoProcessHint.textContent = "Frame pertama siap. Region bersifat opsional.";
-    elements.regionStatus.textContent = "Belum ada region.";
-    updateRegionControls();
+    window.requestAnimationFrame(() => renderFirstFrame());
   };
   elements.sourceVideo.onerror = () => {
     elements.videoError.textContent = "Frame video tidak dapat dibaca oleh browser. Coba format MP4 atau WebM.";
@@ -963,6 +987,31 @@ function renderProgress(progress) {
   elements.progressBar.firstElementChild.style.width = `${percent}%`;
 }
 
+function renderVideoClassCounts(counts) {
+  elements.videoClassCounts.replaceChildren();
+  const rows = Object.entries(counts || {}).sort(([left], [right]) => left.localeCompare(right));
+  if (!rows.length) {
+    const empty = document.createElement("p");
+    empty.className = "video-class-empty";
+    empty.textContent = "Tidak ada objek terlacak dengan ID kelas.";
+    elements.videoClassCounts.append(empty);
+    return;
+  }
+
+  rows.forEach(([className, count]) => {
+    const card = document.createElement("article");
+    card.className = "video-class-card";
+    const label = document.createElement("p");
+    label.className = "video-class-label";
+    label.textContent = className.replace(/[_-]+/g, " ");
+    const value = document.createElement("p");
+    value.className = "video-class-value";
+    value.textContent = String(count);
+    card.append(label, value);
+    elements.videoClassCounts.append(card);
+  });
+}
+
 async function pollVideoProgress(jobId, sequence) {
   while (sequence === state.videoPollSequence) {
     const progress = await api.getProgress(jobId);
@@ -975,6 +1024,7 @@ async function pollVideoProgress(jobId, sequence) {
       elements.videoInsideNow.textContent = String(progress.stats?.inside_now ?? 0);
       elements.videoEnteredRegion.textContent = String(progress.stats?.entered_region ?? 0);
       elements.videoUniqueTotal.textContent = String(progress.stats?.unique_total ?? 0);
+      renderVideoClassCounts(progress.stats?.class_counts);
       elements.videoBaseline.hidden = !progress.baseline;
       elements.videoBaseline.textContent = progress.baseline
         ? `Sebelum enhancement: ${progress.baseline.total} object, ${progress.baseline.inside_region} di region, confidence ${formatDecimal(progress.baseline.avg_conf)}.`
