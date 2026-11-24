@@ -546,23 +546,9 @@ summary:focus-visible,
 
 .no-model-state {
   position: relative;
-
-  border: 1px solid var(--glass-border) !important;
-
-  border-radius: 18px !important;
-
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.72),
-      rgba(255, 253, 247, 0.48)
-    ) !important;
-
-  box-shadow:
-    var(--shadow-glass);
-
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  border: 1px dashed var(--border-strong) !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.72) !important;
 }
 
 /* =========================================================
