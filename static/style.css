@@ -799,7 +799,7 @@ video.media-preview-item {
 
 .report-table {
   width: 100%;
-  min-width: 1120px;
+  min-width: 1180px;
 
   border-collapse: separate !important;
   border-spacing: 0;
@@ -894,6 +894,8 @@ video.media-preview-item {
   color: var(--black) !important;
 
   font-weight: 500;
+  min-width: 145px;
+  white-space: nowrap;
 }
 
 /* Cell terakhir */
@@ -948,12 +950,11 @@ video.media-preview-item {
 }
 
 /* Metode / brightness / confidence */
-.report-table td:nth-child(4) {
+.report-table td:nth-child(5) {
   min-width: 190px;
 }
 
 /* Total sebelum → sesudah */
-.report-table td:nth-child(5),
 .report-table td:nth-child(6),
 .report-table td:nth-child(7) {
   min-width: 175px;
@@ -968,6 +969,47 @@ video.media-preview-item {
   white-space: nowrap;
 
   font-weight: 500;
+}
+
+.report-status-cell {
+  min-width: 115px;
+}
+
+.report-status-badge {
+  display: inline-flex;
+  min-height: 25px;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(86, 78, 64, 0.08);
+  color: var(--black-soft);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.report-status-badge::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.report-status-badge.is-done {
+  background: rgba(43, 122, 82, 0.1);
+  color: #286b49;
+}
+
+.report-status-badge.is-failed {
+  background: rgba(170, 58, 45, 0.1);
+  color: #9d352a;
+}
+
+.report-status-badge.is-working {
+  background: rgba(146, 105, 26, 0.12);
+  color: #775514;
 }
 
 /* =========================================================
@@ -1013,7 +1055,7 @@ video.media-preview-item {
 
 @media (max-width: 768px) {
   .report-table {
-    min-width: 1050px;
+    min-width: 1180px;
 
     font-size: 13px !important;
   }

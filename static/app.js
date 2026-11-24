@@ -30,8 +30,8 @@ const api = (() => {
   function xlsxBlob(rows) {
     const encoder = new TextEncoder();
     const xmlEscape = (value) => String(value ?? "").replace(/[&<>\"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[character]));
-    const headers = ["Tanggal", "File", "Jenis", "Enhancement", "Total", "Avg. confidence", "Model"];
-    const values = [headers, ...rows.map((row) => [row.created_at, row.file_name, row.type, row.enhance, row.total, row.avg_conf, row.model])];
+    const headers = ["Tanggal", "File", "Jenis", "Status", "Enhancement", "Total", "Avg. confidence", "Model"];
+    const values = [headers, ...rows.map((row) => [row.created_at, row.file_name, row.type, row.status || "Selesai", row.enhance, row.total, row.avg_conf, row.model])];
     const columnName = (number) => {
       let name = "";
       for (number += 1; number > 0; number = Math.floor((number - 1) / 26)) name = String.fromCharCode(65 + ((number - 1) % 26)) + name;
@@ -201,6 +201,7 @@ const api = (() => {
         addReportRow({
           file_name: file.name,
           type: "Foto",
+          status: "Selesai",
           enhance,
           total,
           avg_conf: avgConf,
@@ -267,6 +268,7 @@ const api = (() => {
             addReportRow({
               file_name: job.file_name,
               type: "Video",
+              status: "Selesai",
               enhance: job.enhance,
               total: job.stats.unique_total,
               avg_conf: 0.83,
@@ -289,7 +291,7 @@ const api = (() => {
 
     async getReport() {
       if (USE_MOCK) return { rows: mockReport.map((row) => ({ ...row })) };
-      return request("/api/report");
+      return request("/api/report", { cache: "no-store" });
     },
 
     async clearReport() {
@@ -461,6 +463,8 @@ function makeCell(text, className = "") {
 
 function reportComparison(before, after, difference, formatter) {
   if (before == null && after == null) return "—";
+  if (before == null) return `— → ${formatter(after)}`;
+  if (after == null) return `${formatter(before)} → —`;
   const delta = difference == null ? Number(after || 0) - Number(before || 0) : Number(difference);
   const sign = delta > 0 ? "+" : "";
   return `${formatter(before)} → ${formatter(after)} (Δ ${sign}${formatter(delta)})`;
@@ -920,12 +924,14 @@ async function loadReport() {
   elements.reportError.hidden = true;
   try {
     const result = await api.getReport();
-    const rows = Array.isArray(result.rows) ? result.rows : [];
+    const rows = Array.isArray(result.rows)
+      ? [...result.rows].sort((left, right) => new Date(right.waktu || right.created_at || right.date || 0) - new Date(left.waktu || left.created_at || left.date || 0))
+      : [];
     elements.reportBody.replaceChildren();
     if (!rows.length) {
       const row = document.createElement("tr");
-      const cell = makeCell("Belum ada laporan enhancement sebelum/sesudah.", "table-empty");
-      cell.colSpan = 7;
+      const cell = makeCell("Belum ada aktivitas deteksi. Hasil foto dan video akan muncul di sini.", "table-empty");
+      cell.colSpan = 8;
       row.append(cell);
       elements.reportBody.append(row);
     } else {
@@ -936,11 +942,24 @@ async function loadReport() {
         const confidence = item.conf ?? item.confidence;
         const type = item.jenis || item.type || item.kind || "foto";
         const typeLabel = String(type).toLowerCase() === "video" ? "Video" : "Foto";
+        const rawStatus = String(item.status || "Selesai").toLowerCase();
+        const statusKind = ["gagal", "error", "failed"].includes(rawStatus)
+          ? "failed"
+          : ["diproses", "processing", "running"].includes(rawStatus) ? "working" : "done";
+        const statusLabel = statusKind === "failed" ? "Gagal" : statusKind === "working" ? "Diproses" : "Selesai";
         const countFormat = (value) => value == null ? "—" : String(Math.round(Number(value)));
         const confidenceFormat = (value) => value == null ? "—" : formatMetric(value);
         row.append(makeCell(formatDate(item.waktu || item.created_at || item.date)));
         row.append(makeCell(item.nama_file || item.file_name || item.filename || item.file || "—", "report-file"));
         row.append(makeCell(typeLabel));
+        const statusCell = document.createElement("td");
+        statusCell.className = "report-status-cell";
+        const statusBadge = document.createElement("span");
+        statusBadge.className = `report-status-badge is-${statusKind}`;
+        statusBadge.textContent = statusLabel;
+        if (item.pesan) statusBadge.title = item.pesan;
+        statusCell.append(statusBadge);
+        row.append(statusCell);
         row.append(makeCell(`${method} · ${brightness > 0 ? "+" : ""}${brightness} · conf ${confidence == null ? "—" : formatMetric(confidence)}`));
         row.append(makeCell(reportComparison(item.total_sebelum ?? item.baseline?.total, item.total_sesudah ?? item.total, item.selisih_total, countFormat), "numeric-cell"));
         row.append(makeCell(reportComparison(item.avgconf_sebelum ?? item.baseline?.avg_conf, item.avgconf_sesudah ?? item.avg_conf, item.selisih_avgconf, confidenceFormat), "numeric-cell"));
@@ -948,7 +967,10 @@ async function loadReport() {
         elements.reportBody.append(row);
       });
     }
-    elements.reportSummary.textContent = `${rows.length} catatan deteksi`;
+    const failedCount = rows.filter((item) => ["gagal", "error", "failed"].includes(String(item.status || "").toLowerCase())).length;
+    elements.reportSummary.textContent = failedCount
+      ? `${rows.length} aktivitas · ${failedCount} gagal`
+      : `${rows.length} aktivitas deteksi`;
     state.reportLoaded = true;
   } catch (error) {
     elements.reportError.textContent = error.message || "Laporan gagal dimuat.";

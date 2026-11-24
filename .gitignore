@@ -66,6 +66,9 @@ db.sqlite3-journal
 instance/
 .webassets-cache
 
+# Runtime detection history is local to each checkout.
+/reports/report_log.json
+
 # Scrapy stuff:
 .scrapy
 

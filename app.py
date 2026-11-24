@@ -150,33 +150,36 @@ def _write_report_rows_atomic(rows):
 
 
 def _make_enhancement_report(file_name, kind, model_name, method, brightness, conf, baseline, result):
-    """Satukan angka sebelum/sesudah dan hitung selisih sesudah dikurangi sebelum."""
-    before_total = int(baseline["total"])
-    after_total = int(result["total"])
-    before_conf = float(baseline["avg_conf"])
-    after_conf = float(result["avg_conf"])
+    """Buat satu baris riwayat, dengan baseline opsional dan status proses."""
+    before_total = int(baseline["total"]) if baseline is not None else None
+    after_total = int(result["total"]) if result is not None else None
+    before_conf = float(baseline["avg_conf"]) if baseline is not None else None
+    after_conf = float(result["avg_conf"]) if result is not None else None
     return {
         "waktu": datetime.now().astimezone().isoformat(timespec="seconds"),
         "nama_file": file_name,
         "jenis": kind,
+        "status": "Selesai" if result is not None else "Gagal",
+        "pesan": None,
         "model": model_name,
         "metode_enhancement": method,
         "brightness": float(brightness),
         "conf": float(conf),
         "total_sebelum": before_total,
         "total_sesudah": after_total,
-        "selisih_total": after_total - before_total,
+        "selisih_total": after_total - before_total if before_total is not None and after_total is not None else None,
         "avgconf_sebelum": before_conf,
         "avgconf_sesudah": after_conf,
-        "selisih_avgconf": after_conf - before_conf,
+        "selisih_avgconf": after_conf - before_conf if before_conf is not None and after_conf is not None else None,
     }
 
 
-def _append_enhancement_report(file_name, kind, model_name, method, brightness, conf, baseline, result):
-    """Tambahkan satu laporan baseline di bawah lock lalu simpan atomik."""
+def _append_enhancement_report(file_name, kind, model_name, method, brightness, conf, baseline, result, message=None):
+    """Tambahkan satu hasil deteksi ke riwayat lalu simpan secara atomik."""
     row = _make_enhancement_report(
         file_name, kind, model_name, method, brightness, conf, baseline, result
     )
+    row["pesan"] = message
     with REPORT_LOCK:
         rows = _read_report_rows()
         rows.append(row)
@@ -653,6 +656,20 @@ def detect_image():
             rendered = draw_detections(enhanced, boxes, poly)
         except Exception as error:
             logger.exception("Deteksi foto gagal")
+            try:
+                _append_enhancement_report(
+                    secure_filename(uploaded.filename) or uploaded.filename,
+                    "foto",
+                    model_name,
+                    method,
+                    brightness,
+                    conf,
+                    None,
+                    None,
+                    str(error),
+                )
+            except OSError:
+                logger.exception("Status deteksi foto gagal disimpan")
             return jsonify({"error": f"Deteksi gagal: {error}"}), 500
 
     # Simpan semua keluaran dengan satu ID unik agar URL mudah ditautkan.
@@ -674,22 +691,20 @@ def detect_image():
             (OUTPUT_DIR / filename).unlink(missing_ok=True)
         return jsonify({"error": f"Hasil deteksi gagal disimpan: {error}"}), 500
 
-    # Catat hanya deteksi yang benar-benar memiliki hasil baseline.
-    if baseline is not None:
-        try:
-            _append_enhancement_report(
-                secure_filename(uploaded.filename) or uploaded.filename,
-                "foto",
-                model_name,
-                method,
-                brightness,
-                conf,
-                baseline,
-                stats,
-            )
-        except OSError as error:
-            logger.exception("Laporan deteksi foto gagal disimpan")
-            return jsonify({"error": f"Laporan deteksi gagal disimpan: {error}"}), 500
+    try:
+        _append_enhancement_report(
+            secure_filename(uploaded.filename) or uploaded.filename,
+            "foto",
+            model_name,
+            method,
+            brightness,
+            conf,
+            baseline,
+            stats,
+        )
+    except OSError as error:
+        logger.exception("Laporan deteksi foto gagal disimpan")
+        return jsonify({"error": f"Laporan deteksi gagal disimpan: {error}"}), 500
 
     return jsonify({
         "original_url": f"/outputs/{filenames['original']}",
@@ -895,18 +910,17 @@ def _process_video_job(job):
         # Beri tahu frontend bahwa tracking selesai dan video sedang dikonversi.
         _set_video_job(job["job_id"], percent=99, message="Mengonversi video ke H.264…")
         _encode_video_h264(temporary_path, result_path)
-        # Simpan laporan setelah kedua lintasan dan file H.264 berhasil dibuat.
-        if baseline is not None:
-            _append_enhancement_report(
-                job["file_name"],
-                "video",
-                job["model_name"],
-                job["enhance"],
-                job["brightness"],
-                job["conf"],
-                baseline,
-                enhanced_summary,
-            )
+        # Simpan semua video selesai, termasuk pemrosesan tanpa enhancement.
+        _append_enhancement_report(
+            job["file_name"],
+            "video",
+            job["model_name"],
+            job["enhance"],
+            job["brightness"],
+            job["conf"],
+            baseline,
+            enhanced_summary,
+        )
         _set_video_job(
             job["job_id"],
             status="done",
@@ -919,6 +933,20 @@ def _process_video_job(job):
     except Exception as error:
         logger.exception("Job video %s gagal", job["job_id"])
         result_path.unlink(missing_ok=True)
+        try:
+            _append_enhancement_report(
+                job["file_name"],
+                "video",
+                job["model_name"],
+                job["enhance"],
+                job["brightness"],
+                job["conf"],
+                None,
+                None,
+                str(error),
+            )
+        except OSError:
+            logger.exception("Status job video gagal disimpan")
         _set_video_job(
             job["job_id"],
             status="error",
@@ -1137,16 +1165,16 @@ def _make_report_workbook(rows):
     from openpyxl.styles import Alignment, Font, PatternFill
 
     headers = [
-        "Waktu", "Nama file", "Jenis", "Model", "Metode enhancement",
+        "Waktu", "Nama file", "Jenis", "Status", "Model", "Metode enhancement",
         "Brightness", "Confidence", "Total sebelum", "Total sesudah",
         "Selisih total", "Avg conf sebelum", "Avg conf sesudah", "Selisih avg conf",
     ]
     fields = [
-        "waktu", "nama_file", "jenis", "model", "metode_enhancement",
+        "waktu", "nama_file", "jenis", "status", "model", "metode_enhancement",
         "brightness", "conf", "total_sebelum", "total_sesudah", "selisih_total",
         "avgconf_sebelum", "avgconf_sesudah", "selisih_avgconf",
     ]
-    numeric_fields = fields[5:]
+    numeric_fields = fields[6:]
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "Laporan"
@@ -1154,16 +1182,17 @@ def _make_report_workbook(rows):
 
     for row in rows:
         values = [row.get(field) for field in fields]
-        for index in range(5, len(values)):
+        values[3] = row.get("status") or "Selesai"
+        for index in range(6, len(values)):
             values[index] = _report_number(row, fields[index])
         sheet.append(values)
     _style_excel_header(sheet)
     sheet.freeze_panes = "A2"
-    sheet.auto_filter.ref = f"A1:M{max(1, len(rows) + 1)}"
+    sheet.auto_filter.ref = f"A1:N{max(1, len(rows) + 1)}"
 
     # Hitung rata-rata di Python agar tetap langsung terbaca oleh pembaca XLSX.
     average_row = ["Rata-rata"] + [None] * (len(fields) - 1)
-    for column_index, field in enumerate(numeric_fields, start=6):
+    for column_index, field in enumerate(numeric_fields, start=7):
         numbers = [number for row in rows if (number := _report_number(row, field)) is not None]
         average_row[column_index - 1] = sum(numbers) / len(numbers) if numbers else None
     sheet.append(average_row)
@@ -1173,12 +1202,12 @@ def _make_report_workbook(rows):
         cell.font = Font(bold=True, color="182131")
 
     for row_index in range(2, sheet.max_row + 1):
-        for column_index in (6, 7, 11, 12, 13):
+        for column_index in (7, 8, 12, 13, 14):
             sheet.cell(row_index, column_index).number_format = "0.00"
-        sheet.cell(row_index, 13).number_format = "+0.00;-0.00;0.00"
+        sheet.cell(row_index, 14).number_format = "+0.00;-0.00;0.00"
     _fit_excel_columns(sheet)
 
-    # Kelompokkan tiga metrik selisih untuk ringkasan masing-masing metode.
+    # Kelompokkan dua metrik selisih untuk ringkasan masing-masing metode.
     groups = defaultdict(list)
     for row in rows:
         groups[row.get("metode_enhancement") or "none"].append(row)
