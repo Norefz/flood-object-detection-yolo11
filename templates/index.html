@@ -373,7 +373,11 @@
             <div><h2 class="text-[15px] font-medium text-[#37342D]" id="region-editor-title">Region hitung</h2><p class="mt-1 text-[12px] leading-5 text-[#777064]" id="region-help">Region opsional. Klik Gambar Region, lalu pilih minimal tiga titik.</p></div>
             <span class="text-[12px] tabular-nums text-[#777064]" id="region-point-count">0 titik</span>
           </div>
-          <div class="canvas-frame flex min-h-[180px] items-center justify-center overflow-hidden bg-[#DED6C1]"><canvas id="region-canvas" aria-label="Pratinjau media dan gambar region"></canvas></div>
+          <div class="canvas-frame region-preview-stage overflow-hidden bg-[#DED6C1]" id="region-preview-stage">
+            <img class="region-preview-media" id="region-photo-preview" alt="Pratinjau foto untuk menggambar region" hidden>
+            <video class="region-preview-media source-video" id="source-video" controls playsinline preload="metadata" aria-label="Pratinjau video untuk menggambar region" hidden></video>
+            <canvas id="region-canvas" aria-label="Lapisan gambar region"></canvas>
+          </div>
           <div class="mt-4 flex flex-wrap items-center gap-2">
             <button class="button button-outline" id="draw-region-button" type="button">Gambar Region</button>
             <button class="button button-dark" id="finish-region-button" type="button" disabled>Selesai</button>
@@ -385,7 +389,6 @@
     </div>
 
     <input class="sr-only" id="model-file-input" type="file" accept=".pt,application/octet-stream" aria-label="Pilih file model YOLO .pt">
-    <video class="source-video" id="source-video" muted playsinline preload="metadata" aria-hidden="true" tabindex="-1"></video>
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   </div>
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>

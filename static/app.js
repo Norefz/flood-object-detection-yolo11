@@ -361,6 +361,8 @@ const elements = {
   photoRegionSlot: document.getElementById("photo-region-slot"),
   videoRegionSlot: document.getElementById("video-region-slot"),
   regionEditor: document.getElementById("region-editor"),
+  regionPreviewStage: document.getElementById("region-preview-stage"),
+  regionPhotoPreview: document.getElementById("region-photo-preview"),
   regionCanvas: document.getElementById("region-canvas"),
   regionPointCount: document.getElementById("region-point-count"),
   regionHelp: document.getElementById("region-help"),
@@ -744,6 +746,9 @@ function selectPhoto(file) {
   state.mockResultUrl = null;
   state.currentFile = file;
   state.previewUrl = URL.createObjectURL(file);
+  elements.regionPhotoPreview.src = state.previewUrl;
+  elements.regionPhotoPreview.hidden = false;
+  elements.sourceVideo.hidden = true;
   state.regions.foto = [];
   state.editorType = "foto";
   state.drawingRegion = false;
@@ -810,7 +815,6 @@ function drawRegionCanvas() {
   const canvas = elements.regionCanvas;
   const context = canvas.getContext("2d");
   context.clearRect(0, 0, canvas.width, canvas.height);
-  context.drawImage(state.editorImage, 0, 0, canvas.width, canvas.height);
 
   const points = currentRegion();
   if (points.length) {
@@ -840,6 +844,7 @@ function drawRegionCanvas() {
 
 function updateRegionControls() {
   const count = currentRegion().length;
+  elements.regionPreviewStage.classList.toggle("is-drawing-region", state.drawingRegion);
   elements.regionPointCount.textContent = `${count} titik`;
   elements.finishRegion.disabled = !state.drawingRegion || count < 3;
   elements.drawRegion.textContent = state.drawingRegion ? "Sedang menggambar…" : "Gambar Region";
@@ -880,6 +885,7 @@ function addRegionPoint(event) {
 
 function startRegionDrawing() {
   if (!state.editorType) return;
+  if (state.editorType === "video") elements.sourceVideo.pause();
   state.regions[state.editorType] = [];
   state.drawingRegion = true;
   elements.regionStatus.textContent = "Klik titik-titik di foto untuk membentuk poligon.";
@@ -929,6 +935,9 @@ function setVideoSource(file) {
   state.videoFile = file;
   state.regions.video = [];
   state.editorType = "video";
+  state.editorImage = null;
+  elements.regionPhotoPreview.hidden = true;
+  elements.sourceVideo.hidden = false;
   state.drawingRegion = false;
   elements.regionStatus.textContent = "Belum ada region.";
   elements.videoError.hidden = true;
