@@ -1115,6 +1115,82 @@ summary:focus-visible,
   font-size: 12px;
 }
 
+.model-table .row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.model-table .active-label {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid rgba(62, 91, 68, 0.22);
+  border-radius: 8px;
+  background: rgba(232, 239, 228, 0.78);
+  color: #36533c !important;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.model-table .model-action-button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+.model-table .model-action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.model-table .model-action-select {
+  border-color: var(--black);
+  background: var(--black);
+  color: #fff !important;
+}
+
+.model-table .model-action-select:hover:not(:disabled) {
+  background: #39362f;
+}
+
+.model-table .model-action-delete {
+  border-color: rgba(145, 62, 50, 0.32);
+  background: rgba(255, 250, 247, 0.9);
+  color: #8a382e !important;
+}
+
+.model-table .model-action-delete:hover:not(:disabled) {
+  border-color: #8a382e;
+  background: #8a382e;
+  color: #fff !important;
+}
+
+.model-table .model-action-button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.model-table .model-action-button:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: 2px;
+}
+
 /* =========================================================
    RESPONSIVE
    ========================================================= */

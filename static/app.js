@@ -525,7 +525,7 @@ function renderModels() {
     } else {
       const selectButton = document.createElement("button");
       selectButton.type = "button";
-      selectButton.className = "text-button";
+      selectButton.className = "text-button model-action-button model-action-select";
       selectButton.dataset.action = "select";
       selectButton.dataset.name = model.name;
       selectButton.textContent = "Jadikan Aktif";
@@ -533,7 +533,7 @@ function renderModels() {
     }
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
-    deleteButton.className = "text-button text-button-danger";
+    deleteButton.className = "text-button model-action-button model-action-delete";
     deleteButton.dataset.action = "delete";
     deleteButton.dataset.name = model.name;
     deleteButton.textContent = "Hapus";
@@ -1127,7 +1127,7 @@ async function handleModelAction(event) {
       setToast(`${name} menjadi model aktif.`);
     } else if (action === "delete") {
       const result = await api.deleteModel(name);
-      if (!result.ok) throw new Error("Model gagal dihapus.");
+      if (!result.ok) throw new Error(result.error || "Model gagal dihapus.");
       await refreshModels();
       setToast(`${name} dihapus.`);
     }

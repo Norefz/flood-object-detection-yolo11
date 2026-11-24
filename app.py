@@ -393,6 +393,14 @@ def upload_model():
         except Exception as error:
             return jsonify({"ok": False, "error": f"Model .pt tidak dapat dimuat: {error}"}), 400
 
+        # NamedTemporaryFile biasanya membuat file berizin 0600. Model yang
+        # tersimpan perlu dapat dibaca lagi oleh proses aplikasi setelah restart
+        # atau saat dijalankan melalui service account yang berbeda.
+        try:
+            temp_path.chmod(0o644)
+        except OSError as error:
+            return jsonify({"ok": False, "error": f"Izin file model gagal disiapkan: {error}"}), 500
+
         # Serialisasi pergantian file, settings, dan state model aktif.
         with MODEL_LOCK:
             try:
@@ -476,7 +484,7 @@ def select_model():
 
 @app.post("/api/delete_model")
 def delete_model():
-    """Hapus model lokal, tetapi tolak penghapusan model yang sedang aktif."""
+    """Hapus model lokal dan nonaktifkan lebih dulu bila model sedang aktif."""
     data = request.get_json(silent=True) or {}
     model_name = _safe_model_name(data.get("name"))
     if not model_name:
@@ -484,16 +492,49 @@ def delete_model():
 
     model_path = MODEL_DIR / model_name
     with MODEL_LOCK:
-        # Jangan pernah menghapus file yang sedang dipakai model global.
-        if model_name == ACTIVE_MODEL_NAME:
-            return jsonify({"ok": False}), 409
         if not model_path.is_file():
-            return jsonify({"ok": False}), 404
+            return jsonify({"ok": False, "error": "Model tidak ditemukan."}), 404
+
+        # Video memakai path bobot saat worker mulai memproses. Pertahankan file
+        # sampai seluruh job yang memakai model tersebut selesai.
+        with VIDEO_JOBS_LOCK:
+            in_use = any(
+                job.get("model_name") == model_name
+                and job.get("status") in {"queued", "running"}
+                for job in VIDEO_JOBS.values()
+            )
+        if in_use:
+            return jsonify({
+                "ok": False,
+                "error": "Model sedang dipakai oleh pemrosesan video. Coba lagi setelah selesai.",
+            }), 409
+
+        if model_name == ACTIVE_MODEL_NAME:
+            # Pindahkan dulu ke nama sementara. Jika settings gagal disimpan,
+            # kembalikan file agar model aktif tetap utuh.
+            backup_path = MODEL_DIR / f".delete-{uuid.uuid4().hex}.bak"
+            try:
+                os.replace(model_path, backup_path)
+                _set_active_model(None, None)
+            except OSError as error:
+                if backup_path.exists():
+                    os.replace(backup_path, model_path)
+                logger.error("Model aktif %s gagal dinonaktifkan: %s", model_name, error)
+                return jsonify({
+                    "ok": False,
+                    "error": f"Model gagal dinonaktifkan: {error}",
+                }), 500
+            try:
+                backup_path.unlink(missing_ok=True)
+            except OSError as error:
+                logger.warning("File model sementara gagal dibersihkan (%s): %s", backup_path, error)
+            return jsonify({"ok": True, "active": None})
+
         try:
             model_path.unlink()
         except OSError as error:
             logger.error("Model %s gagal dihapus: %s", model_name, error)
-            return jsonify({"ok": False}), 500
+            return jsonify({"ok": False, "error": f"Model gagal dihapus: {error}"}), 500
     return jsonify({"ok": True})
 
 
@@ -970,8 +1011,16 @@ def process_video():
         "baseline": None,
         "message": "Video masuk antrean.",
     }
-    with VIDEO_JOBS_LOCK:
-        VIDEO_JOBS[job_id] = job
+    # Pastikan model belum diganti/dihapus saat file video diunggah. Model lock
+    # mengurutkan pendaftaran job dengan aksi hapus/pilih model.
+    with MODEL_LOCK:
+        still_active = ACTIVE_MODEL is not None and ACTIVE_MODEL_NAME == active_model_name
+        model_exists = fallback or (model_source.is_file() if isinstance(model_source, Path) else False)
+        if not still_active or not model_exists:
+            input_path.unlink(missing_ok=True)
+            return jsonify({"error": "Model berubah saat video diunggah. Pilih model lalu coba lagi."}), 409
+        with VIDEO_JOBS_LOCK:
+            VIDEO_JOBS[job_id] = job
     _ensure_video_worker()
     VIDEO_QUEUE.put(job)
     return jsonify({"job_id": job_id}), 202

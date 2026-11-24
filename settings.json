@@ -1,4 +1,4 @@
 {
-  "active_model": null,
+  "active_model": "best.pt",
   "conf": 0.25
 }
