@@ -3,22 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f2f4f7">
-  <title>Arus — Deteksi Lingkungan Banjir</title>
+  <meta name="theme-color" content="#EBE2CC">
+  <title>Deep Learning — Deteksi Lingkungan Banjir</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Geist','sans-serif']},colors:{accent:'#1d5fbf'}}}};</script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Geist','sans-serif']},colors:{accent:'#655B49'}}}};</script>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="min-h-screen bg-[#f2f4f7] font-sans text-[#111827] antialiased">
+<body class="min-h-screen bg-[#EBE2CC] font-sans text-[#171612] antialiased">
   <div class="min-h-screen" data-ui>
-    <header class="border-b border-[#e1e5eb] bg-[#f2f4f7]">
+    <header class="site-header border-b border-[#B7B09E] bg-[#DED6C1]">
       <div class="mx-auto flex min-h-[64px] max-w-[1440px] flex-wrap items-center justify-between gap-x-8 gap-y-3 px-5 py-3 sm:px-8 lg:px-10">
-        <a class="brand flex shrink-0 items-center gap-2.5 text-[20px] font-semibold tracking-[-0.05em] text-[#111827]" href="#foto" aria-label="Arus, halaman Foto">
+        <a class="brand flex shrink-0 items-center gap-2.5 text-[20px] font-semibold tracking-[-0.05em] text-[#171612]" href="#foto" aria-label="Arus, halaman Foto">
           <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
-          <span>arus<span class="text-accent">.</span></span>
+          <span>Kelompok 2<span class="text-accent">.</span></span>
         </a>
         <nav class="main-nav flex max-w-full items-center gap-1 overflow-x-auto" aria-label="Navigasi utama" role="tablist">
           <button class="nav-tab is-active" id="tab-foto" type="button" role="tab" aria-selected="true" aria-controls="panel-foto" data-tab="foto">Foto</button>
@@ -26,37 +26,37 @@
           <button class="nav-tab" id="tab-laporan" type="button" role="tab" aria-selected="false" aria-controls="panel-laporan" data-tab="laporan">Laporan</button>
           <button class="nav-tab" id="tab-pengaturan" type="button" role="tab" aria-selected="false" aria-controls="panel-pengaturan" data-tab="pengaturan">Pengaturan</button>
         </nav>
-        <span class="hidden text-[13px] text-[#687386] xl:block">Deteksi kendaraan banjir</span>
+        <span class="hidden text-[13px] text-[#777064] xl:block">Deteksi Lingkungan Banjir</span>
       </div>
     </header>
 
     <div class="mx-auto grid max-w-[1440px] lg:grid-cols-[256px_minmax(0,1fr)]">
-      <aside class="border-b border-[#e1e5eb] bg-[#f2f4f7] px-5 py-6 sm:px-8 lg:min-h-[calc(100vh-65px)] lg:border-b-0 lg:border-r lg:px-7 lg:py-8" aria-label="Pengaturan deteksi">
-        <section class="border-b border-[#e1e5eb] pb-6" aria-labelledby="model-heading">
+      <aside class="site-sidebar border-b border-[#B7B09E] bg-[#DED6C1] px-5 py-6 sm:px-8 lg:min-h-[calc(100vh-65px)] lg:border-b-0 lg:border-r lg:px-7 lg:py-8" aria-label="Pengaturan deteksi">
+        <section class="border-b border-[#B7B09E] pb-6" aria-labelledby="model-heading">
           <div class="mb-3 flex items-center justify-between gap-2">
-            <h2 class="text-[14px] font-semibold text-[#202938]" id="model-heading">Model</h2>
+            <h2 class="text-[14px] font-semibold text-[#37342D]" id="model-heading">Model</h2>
             <span class="model-state" id="model-state">Belum dipilih</span>
           </div>
-          <p class="mb-4 break-all text-[13px] text-[#566174]" id="active-model">Memuat model…</p>
+          <p class="mb-4 break-all text-[13px] text-[#5F5A50]" id="active-model">Memuat model…</p>
           <button class="button button-dark w-full" id="upload-model-button" type="button">Upload model .pt</button>
-          <p class="mt-2 text-[12px] leading-5 text-[#687386]">Pilih file bobot YOLO dengan format .pt.</p>
+          <p class="mt-2 text-[12px] leading-5 text-[#777064]">Pilih file bobot YOLO dengan format .pt.</p>
         </section>
 
-        <section class="border-b border-[#e1e5eb] py-6" aria-labelledby="confidence-heading">
+        <section class="border-b border-[#B7B09E] py-6" aria-labelledby="confidence-heading">
           <div class="mb-3 flex items-center justify-between gap-2">
-            <label class="text-[14px] font-medium text-[#202938]" id="confidence-heading" for="confidence-slider">Confidence</label>
-            <output class="font-mono text-[13px] tabular-nums text-[#202938]" id="confidence-value" for="confidence-slider">0,25</output>
+            <label class="text-[14px] font-medium text-[#37342D]" id="confidence-heading" for="confidence-slider">Confidence</label>
+            <output class="font-mono text-[13px] tabular-nums text-[#37342D]" id="confidence-value" for="confidence-slider">0,25</output>
           </div>
           <input id="confidence-slider" class="range-input" type="range" min="0.1" max="0.9" step="0.05" value="0.25" aria-describedby="confidence-hint">
-          <div class="mt-1 flex justify-between text-[11px] tabular-nums text-[#687386]" aria-hidden="true"><span>0,1</span><span>0,9</span></div>
-          <p class="mt-2 text-[12px] leading-5 text-[#687386]" id="confidence-hint">Batas keyakinan minimum deteksi.</p>
+          <div class="mt-1 flex justify-between text-[11px] tabular-nums text-[#777064]" aria-hidden="true"><span>0,1</span><span>0,9</span></div>
+          <p class="mt-2 text-[12px] leading-5 text-[#777064]" id="confidence-hint">Batas keyakinan minimum deteksi.</p>
         </section>
 
-        <details class="advanced-section border-b border-[#e1e5eb] py-5">
-          <summary class="cursor-pointer text-[14px] font-medium text-[#202938]">Opsi lanjutan</summary>
+        <details class="advanced-section border-b border-[#B7B09E] py-5">
+          <summary class="cursor-pointer text-[14px] font-medium text-[#37342D]">Opsi lanjutan</summary>
           <div class="mt-4 space-y-5">
             <div>
-              <label class="mb-2 block text-[12px] font-medium text-[#465164]" for="enhancement-select">Enhancement</label>
+              <label class="mb-2 block text-[12px] font-medium text-[#5F5A50]" for="enhancement-select">Enhancement</label>
               <select id="enhancement-select" class="form-select w-full">
                 <option value="none">None</option>
                 <option value="he">Histogram Equalization</option>
@@ -67,98 +67,178 @@
             </div>
             <div>
               <div class="mb-2 flex items-center justify-between gap-2">
-                <label class="text-[12px] font-medium text-[#465164]" for="brightness-slider">Brightness</label>
-                <output class="font-mono text-[12px] tabular-nums text-[#465164]" id="brightness-value" for="brightness-slider">0</output>
+                <label class="text-[12px] font-medium text-[#5F5A50]" for="brightness-slider">Brightness</label>
+                <output class="font-mono text-[12px] tabular-nums text-[#5F5A50]" id="brightness-value" for="brightness-slider">0</output>
               </div>
               <input id="brightness-slider" class="range-input" type="range" min="-100" max="100" step="1" value="0">
-              <div class="mt-1 flex justify-between text-[11px] tabular-nums text-[#7b8594]" aria-hidden="true"><span>-100</span><span>100</span></div>
+              <div class="mt-1 flex justify-between text-[11px] tabular-nums text-[#777064]" aria-hidden="true"><span>-100</span><span>100</span></div>
             </div>
           </div>
         </details>
 
-        <div class="mt-6 flex items-center gap-2 text-[12px] text-[#687386]">
+        <div class="mt-6 flex items-center gap-2 text-[12px] text-[#777064]">
           <span class="status-dot" aria-hidden="true"></span>
-          <span>Mode hitung kendaraan</span>
+          <span>Mode deteksi objek</span>
         </div>
       </aside>
 
-      <main class="min-w-0 px-5 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-10">
+      <main class="main-content min-w-0 px-5 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-10">
         <div class="global-message mb-6" id="global-message" role="status" aria-live="polite" hidden></div>
 
         <section class="tab-panel" id="panel-foto" role="tabpanel" aria-labelledby="tab-foto" data-panel="foto">
           <div class="mb-7 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p class="mb-2 text-[11px] font-medium tracking-[0.12em] text-[#687386]">ANALISIS FOTO</p>
-              <h1 class="text-[25px] font-medium tracking-[-0.035em] text-[#111827] sm:text-[28px]">Deteksi kendaraan</h1>
-              <p class="mt-2 text-[14px] leading-6 text-[#566174]">Unggah foto untuk menghitung kendaraan yang terlihat.</p>
+              <p class="mb-2 text-[11px] font-medium tracking-[0.12em] text-[#777064]">ANALISIS FOTO</p>
+              <h1 class="text-[25px] font-medium tracking-[-0.035em] text-[#171612] sm:text-[28px]">Deteksi Lingkungan Banjir</h1>
+              <p class="mt-2 text-[14px] leading-6 text-[#5F5A50]">
+                Unggah foto untuk mendeteksi objek pada lingkungan yang terdampak banjir.
+              </p>
             </div>
           </div>
 
-          <section class="no-model-state mx-auto flex max-w-[680px] flex-col items-center border border-dashed border-[#cbd2dc] bg-white px-6 py-12 text-center sm:py-16" id="no-model-state" hidden>
-            <div class="mb-5 text-[#526174]" aria-hidden="true">
+          <section class="no-model-state mx-auto flex max-w-[680px] flex-col items-center border border-dashed border-[#B7B09E] bg-white px-6 py-12 text-center sm:py-16" id="no-model-state" hidden>
+            <div class="mb-5 text-[#5F5A50]" aria-hidden="true">
               <svg class="h-12 w-12" viewBox="0 0 48 48" fill="none"><path d="M8 34h32M12 29l3-9h18l4 9M17 20l2-6h10l3 6M17 34v3m14-3v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="29" r="2" fill="currentColor"/><circle cx="32" cy="29" r="2" fill="currentColor"/></svg>
             </div>
-            <h2 class="text-[17px] font-medium tracking-[-0.02em] text-[#182131]">Upload model YOLO (.pt) untuk memulai</h2>
-            <p class="mt-2 max-w-[440px] text-[14px] leading-6 text-[#687386]">Setelah model aktif, Anda bisa mengunggah foto untuk mulai menghitung kendaraan.</p>
+            <h2 class="text-[17px] font-medium tracking-[-0.02em] text-[#171612]">Upload model YOLO (.pt) untuk memulai</h2>
+            <p class="mt-2 max-w-[440px] text-[14px] leading-6 text-[#777064]">Setelah model aktif, unggah foto untuk mendeteksi objek pada lingkungan banjir.</p>
             <button class="button button-dark mt-6" id="empty-upload-button" type="button">Pilih model .pt</button>
           </section>
 
           <div class="photo-workspace" id="photo-workspace" hidden>
-            <label class="dropzone flex min-h-[196px] cursor-pointer flex-col items-center justify-center border border-dashed border-[#bfc8d4] bg-white px-5 py-8 text-center transition-colors" id="photo-dropzone" for="photo-file-input" tabindex="0">
+            <label class="dropzone flex min-h-[196px] cursor-pointer flex-col items-center justify-center border border-dashed border-[#B7B09E] bg-white px-5 py-8 text-center transition-colors" id="photo-dropzone" for="photo-file-input" tabindex="0">
               <input id="photo-file-input" type="file" accept="image/*" class="sr-only">
-              <span class="mb-3 text-[#526174]" aria-hidden="true">
+              <span class="mb-3 text-[#5F5A50]" aria-hidden="true">
                 <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15v4h14v-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </span>
-              <span class="text-[15px] font-medium text-[#202938]">Seret foto ke sini</span>
-              <span class="mt-1 text-[13px] text-[#687386]">atau <span class="text-accent underline underline-offset-2">pilih dari perangkat</span></span>
-              <span class="mt-3 text-[11px] text-[#7b8594]">JPG, PNG, atau WEBP</span>
+              <span class="text-[15px] font-medium text-[#37342D]">Seret foto ke sini</span>
+              <span class="mt-1 text-[13px] text-[#777064]">atau <span class="text-accent underline underline-offset-2">pilih dari perangkat</span></span>
+              <span class="mt-3 text-[11px] text-[#777064]">JPG, PNG, atau WEBP</span>
             </label>
 
-            <p class="mt-2 text-[12px] text-[#687386]" id="photo-file-name" hidden></p>
+            <p class="mt-2 text-[12px] text-[#777064]" id="photo-file-name" hidden></p>
             <div class="detection-error mt-4" id="detection-error" role="alert" hidden></div>
             <div class="mt-5" id="photo-region-slot"></div>
 
             <section class="result-section mt-9" id="result-section" aria-labelledby="result-heading" hidden>
-              <div class="mb-4 flex flex-wrap items-end justify-between gap-4 border-b border-[#dfe4ea] pb-4">
+              <div class="mb-4 flex flex-wrap items-end justify-between gap-4 border-b border-[#CFC6B1] pb-4">
                 <div>
-                  <p class="mb-1 text-[11px] font-medium tracking-[0.12em] text-[#687386]">HASIL ANALISIS</p>
-                  <h2 class="text-[18px] font-medium tracking-[-0.02em] text-[#182131]" id="result-heading">Foto hasil</h2>
+                  <p class="mb-1 text-[11px] font-medium tracking-[0.12em] text-[#777064]">HASIL ANALISIS</p>
+                  <h2 class="text-[18px] font-medium tracking-[-0.02em] text-[#171612]" id="result-heading">Foto hasil</h2>
                 </div>
                 <button class="button button-outline" id="redetect-button" type="button">Deteksi ulang</button>
               </div>
 
               <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_250px]">
-                <div class="image-frame relative flex min-h-[260px] items-center justify-center overflow-hidden border border-[#dfe4ea] bg-[#e6eaf0]">
-                  <img class="max-h-[68vh] w-full object-contain" id="result-image" alt="Foto hasil deteksi kendaraan">
-                  <div class="image-loading absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/90 text-[13px] text-[#3f4a5a]" id="image-loading" role="status" aria-live="polite" hidden>
+                <div class="image-frame relative flex min-h-[260px] items-center justify-center overflow-hidden border border-[#CFC6B1] bg-[#DED6C1]">
+                  <img class="max-h-[68vh] w-full object-contain" id="result-image" alt="Foto hasil deteksi lingkungan banjir">
+                  <div class="image-loading absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/90 text-[13px] text-[#37342D]" id="image-loading" role="status" aria-live="polite" hidden>
                     <span class="spinner" aria-hidden="true"></span>
                     <span>Deteksi sedang berjalan…</span>
                   </div>
                 </div>
-                <div class="result-summary border border-[#dfe4ea] bg-white p-5 sm:p-6">
-                  <p class="text-[13px] text-[#687386]">Total kendaraan</p>
-                  <p class="mt-2 text-[34px] font-medium leading-none tabular-nums tracking-[-0.04em] text-accent" id="total-count">—</p>
-                  <div class="mt-5 border-t border-[#e7eaf0] pt-4">
-                    <p class="text-[12px] text-[#687386]">Di dalam region</p>
-                    <p class="mt-1 text-[22px] font-medium tabular-nums text-[#202938]" id="inside-count">—</p>
+                <div class="result-summary border border-[#CFC6B1] bg-[#FFFFFF] p-5 sm:p-6">
+                  <div class="mb-5">
+                    <p class="text-[11px] font-medium tracking-[0.12em] text-[#777064]">
+                      OBJEK TERDETEKSI
+                    </p>
+
+                    <p class="mt-1 text-[12px] leading-5 text-[#777064]">
+                      Jumlah objek berdasarkan kelas deteksi.
+                    </p>
                   </div>
-                  <div class="my-5 border-t border-[#e7eaf0]"></div>
-                  <p class="text-[12px] text-[#687386]">Rata-rata confidence</p>
-                  <p class="mt-1 text-[15px] font-medium tabular-nums text-[#202938]" id="average-confidence">—</p>
-                  <p class="result-model-line mt-6 border-t border-[#e7eaf0] pt-4 text-[12px] text-[#687386]">Model <span class="ml-1 break-all text-[#303b4b]" id="result-model">—</span></p>
+
+                  <div class="object-summary">
+
+                    <div class="object-card object-card-total">
+                      <p class="object-card-label">Total Object</p>
+                      <p class="object-card-value" id="total-count">—</p>
+                      <p class="object-card-description">Semua objek terdeteksi</p>
+                    </div>
+
+                    <div class="object-card">
+                      <p class="object-card-label">Standing Water</p>
+                      <p class="object-card-value" id="count-standing-water">—</p>
+                      <p class="object-card-description">Genangan air</p>
+                    </div>
+
+                    <div class="object-card">
+                      <p class="object-card-label">Building Flooded</p>
+                      <p class="object-card-value" id="count-building-flooded">—</p>
+                      <p class="object-card-description">Bangunan terendam</p>
+                    </div>
+
+                    <div class="object-card">
+                      <p class="object-card-label">Rubbish</p>
+                      <p class="object-card-value" id="count-rubbish">—</p>
+                      <p class="object-card-description">Sampah di area banjir</p>
+                    </div>
+
+                    <div class="object-card">
+                      <p class="object-card-label">Vehicle</p>
+                      <p class="object-card-value" id="count-vehicle">—</p>
+                      <p class="object-card-description">Kendaraan terdeteksi</p>
+                    </div>
+
+                    <div class="object-card">
+                      <p class="object-card-label">Person</p>
+                      <p class="object-card-value" id="count-person">—</p>
+                      <p class="object-card-description">Orang terdeteksi</p>
+                    </div>
+
+                  </div>
+
+                  <div class="mt-6 border-t border-[#CFC6B1] pt-4">
+
+                    <div class="flex items-center justify-between gap-4">
+                      <div>
+                        <p class="text-[12px] text-[#777064]">
+                          Di dalam region
+                        </p>
+
+                        <p
+                          class="mt-1 text-[22px] font-medium tabular-nums text-[#171612]"
+                          id="inside-count"
+                        >
+                          —
+                        </p>
+                      </div>
+
+                      <div class="text-right">
+                        <p class="text-[12px] text-[#777064]">
+                          Rata-rata confidence
+                        </p>
+
+                        <p
+                          class="mt-1 text-[15px] font-medium tabular-nums text-[#37342D]"
+                          id="average-confidence"
+                        >
+                          —
+                        </p>
+                      </div>
+                    </div>
+
+                    <p class="result-model-line mt-5 border-t border-[#CFC6B1] pt-4 text-[12px] text-[#777064]">
+                      Model
+                      <span
+                        class="ml-1 break-all text-[#37342D]"
+                        id="result-model"
+                      >—</span>
+                    </p>
+                  </div>
                 </div>
               </div>
 
               <section class="comparison-section mt-6" id="comparison-section" hidden>
                 <div class="mb-3">
-                  <h3 class="text-[15px] font-medium text-[#202938]">Sebelum vs Sesudah enhancement</h3>
-                  <p class="mt-1 text-[12px] text-[#687386]" id="comparison-method">—</p>
+                  <h3 class="text-[15px] font-medium text-[#37342D]">Sebelum vs Sesudah enhancement</h3>
+                  <p class="mt-1 text-[12px] text-[#777064]" id="comparison-method">—</p>
                 </div>
-                <div class="mb-4 overflow-x-auto border border-[#dfe4ea] bg-white">
+                <div class="mb-4 overflow-x-auto border border-[#CFC6B1] bg-white">
                   <table class="comparison-table w-full min-w-[480px] text-[12px]">
                     <thead><tr><th></th><th>Sebelum</th><th>Sesudah</th></tr></thead>
                     <tbody>
-                      <tr><th>Total kendaraan</th><td id="baseline-total">—</td><td id="after-total">—</td></tr>
+                      <tr><th>Total Object</th><td id="baseline-total">—</td><td id="after-total">—</td></tr>
                       <tr><th>Di dalam region</th><td id="baseline-inside">—</td><td id="after-inside">—</td></tr>
                       <tr><th>Avg. confidence</th><td id="baseline-confidence">—</td><td id="after-confidence">—</td></tr>
                     </tbody>
@@ -176,122 +256,122 @@
 
         <section class="tab-panel" id="panel-video" role="tabpanel" aria-labelledby="tab-video" data-panel="video" hidden>
           <div class="mb-7">
-            <p class="mb-2 text-[11px] font-medium tracking-[0.12em] text-[#687386]">ANALISIS VIDEO</p>
-            <h1 class="text-[25px] font-medium tracking-[-0.035em] text-[#111827] sm:text-[28px]">Deteksi video</h1>
-            <p class="mt-2 text-[14px] leading-6 text-[#566174]">Atur region pada frame pertama sebelum video diproses.</p>
+            <p class="mb-2 text-[11px] font-medium tracking-[0.12em] text-[#777064]">ANALISIS VIDEO</p>
+            <h1 class="text-[25px] font-medium tracking-[-0.035em] text-[#171612] sm:text-[28px]">Deteksi video</h1>
+            <p class="mt-2 text-[14px] leading-6 text-[#5F5A50]">Atur region pada frame pertama sebelum video diproses.</p>
           </div>
-          <section class="no-model-state mx-auto flex max-w-[680px] flex-col items-center border border-dashed border-[#cbd2dc] bg-white px-6 py-12 text-center" id="video-no-model" hidden>
-            <h2 class="text-[17px] font-medium text-[#182131]">Upload model YOLO (.pt) untuk memulai</h2>
+          <section class="no-model-state mx-auto flex max-w-[680px] flex-col items-center border border-dashed border-[#B7B09E] bg-white px-6 py-12 text-center" id="video-no-model" hidden>
+            <h2 class="text-[17px] font-medium text-[#171612]">Upload model YOLO (.pt) untuk memulai</h2>
             <button class="button button-dark mt-5" id="video-upload-model-button" type="button">Pilih model .pt</button>
           </section>
           <div class="video-workspace" id="video-workspace" hidden>
-            <label class="video-dropzone flex min-h-[150px] cursor-pointer flex-col items-center justify-center border border-dashed border-[#bfc8d4] bg-white px-5 py-7 text-center transition-colors" id="video-dropzone" for="video-file-input">
+            <label class="video-dropzone flex min-h-[150px] cursor-pointer flex-col items-center justify-center border border-dashed border-[#B7B09E] bg-white px-5 py-7 text-center transition-colors" id="video-dropzone" for="video-file-input">
               <input id="video-file-input" type="file" accept="video/*" class="sr-only">
-              <span class="text-[15px] font-medium text-[#202938]">Pilih atau seret video ke sini</span>
-              <span class="mt-2 text-[12px] text-[#687386]">MP4, MOV, atau format video yang didukung browser</span>
+              <span class="text-[15px] font-medium text-[#37342D]">Pilih atau seret video ke sini</span>
+              <span class="mt-2 text-[12px] text-[#777064]">MP4, MOV, atau format video yang didukung browser</span>
             </label>
-            <p class="mt-2 text-[12px] text-[#687386]" id="video-file-name" hidden></p>
+            <p class="mt-2 text-[12px] text-[#777064]" id="video-file-name" hidden></p>
             <p class="detection-error mt-4" id="video-error" role="alert" hidden></p>
             <div class="mt-5" id="video-region-slot"></div>
             <div class="mt-5 flex flex-wrap items-center gap-3">
               <button class="button button-dark" id="process-video-button" type="button" disabled>Proses video</button>
-              <span class="text-[12px] text-[#687386]" id="video-process-hint">Pilih video untuk mengaktifkan proses.</span>
+              <span class="text-[12px] text-[#777064]" id="video-process-hint">Pilih video untuk mengaktifkan proses.</span>
             </div>
-            <section class="video-progress mt-7 border border-[#dfe4ea] bg-white p-4 sm:p-5" id="video-progress" role="status" aria-live="polite" hidden>
+            <section class="video-progress mt-7 border border-[#CFC6B1] bg-white p-4 sm:p-5" id="video-progress" role="status" aria-live="polite" hidden>
               <div class="mb-3 flex items-center justify-between gap-4">
-                <p class="text-[13px] font-medium text-[#303b4b]" id="progress-message">Menunggu proses…</p>
-                <span class="text-[12px] tabular-nums text-[#687386]" id="progress-percent">0%</span>
+                <p class="text-[13px] font-medium text-[#37342D]" id="progress-message">Menunggu proses…</p>
+                <span class="text-[12px] tabular-nums text-[#777064]" id="progress-percent">0%</span>
               </div>
               <div class="progress-track" role="progressbar" aria-label="Progres pemrosesan video" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-bar"><span></span></div>
             </section>
             <section class="video-result mt-8" id="video-result" hidden>
-              <div class="mb-4 flex flex-wrap items-end justify-between gap-4 border-b border-[#dfe4ea] pb-4">
-                <div><p class="mb-1 text-[11px] font-medium tracking-[0.12em] text-[#687386]">HASIL PEMROSESAN</p><h2 class="text-[18px] font-medium text-[#202938]">Video hasil</h2></div>
+              <div class="mb-4 flex flex-wrap items-end justify-between gap-4 border-b border-[#CFC6B1] pb-4">
+                <div><p class="mb-1 text-[11px] font-medium tracking-[0.12em] text-[#777064]">HASIL PEMROSESAN</p><h2 class="text-[18px] font-medium text-[#37342D]">Video hasil</h2></div>
                 <button class="button button-outline" id="download-video-button" type="button">Unduh video</button>
               </div>
-              <video class="output-video w-full border border-[#dfe4ea] bg-black" id="output-video" controls playsinline></video>
+              <video class="output-video w-full border border-[#CFC6B1] bg-black" id="output-video" controls playsinline></video>
               <div class="mt-4 grid gap-3 sm:grid-cols-3">
-                <article class="metric-card border border-[#dfe4ea] bg-white p-4"><p class="text-[12px] text-[#687386]">Di region sekarang</p><p class="mt-2 text-[26px] font-medium tabular-nums text-accent" id="video-inside-now">0</p></article>
-                <article class="metric-card border border-[#dfe4ea] bg-white p-4"><p class="text-[12px] text-[#687386]">Pernah masuk region</p><p class="mt-2 text-[26px] font-medium tabular-nums text-[#182131]" id="video-entered-region">0</p></article>
-                <article class="metric-card border border-[#dfe4ea] bg-white p-4"><p class="text-[12px] text-[#687386]">Total ID unik</p><p class="mt-2 text-[26px] font-medium tabular-nums text-[#182131]" id="video-unique-total">0</p></article>
+                <article class="metric-card border border-[#CFC6B1] bg-white p-4"><p class="text-[12px] text-[#777064]">Di region sekarang</p><p class="mt-2 text-[26px] font-medium tabular-nums text-accent" id="video-inside-now">0</p></article>
+                <article class="metric-card border border-[#CFC6B1] bg-white p-4"><p class="text-[12px] text-[#777064]">Pernah masuk region</p><p class="mt-2 text-[26px] font-medium tabular-nums text-[#171612]" id="video-entered-region">0</p></article>
+                <article class="metric-card border border-[#CFC6B1] bg-white p-4"><p class="text-[12px] text-[#777064]">Total ID unik</p><p class="mt-2 text-[26px] font-medium tabular-nums text-[#171612]" id="video-unique-total">0</p></article>
               </div>
-              <p class="mt-3 text-[12px] text-[#687386]" id="video-baseline" hidden></p>
+              <p class="mt-3 text-[12px] text-[#777064]" id="video-baseline" hidden></p>
             </section>
           </div>
         </section>
 
         <section class="tab-panel" id="panel-laporan" role="tabpanel" aria-labelledby="tab-laporan" data-panel="laporan" hidden>
           <div class="mb-7 flex flex-wrap items-end justify-between gap-4">
-            <div><p class="mb-2 text-[11px] font-medium tracking-[0.12em] text-[#687386]">RIWAYAT DETEKSI</p><h1 class="text-[25px] font-medium tracking-[-0.035em] text-[#111827] sm:text-[28px]">Laporan</h1><p class="mt-2 text-[14px] text-[#566174]">Riwayat hasil deteksi foto dan video.</p></div>
+            <div><p class="mb-2 text-[11px] font-medium tracking-[0.12em] text-[#777064]">RIWAYAT DETEKSI</p><h1 class="text-[25px] font-medium tracking-[-0.035em] text-[#171612] sm:text-[28px]">Laporan</h1><p class="mt-2 text-[14px] text-[#5F5A50]">Riwayat hasil deteksi foto dan video.</p></div>
             <div class="flex gap-2"><button class="button button-outline" id="clear-report-button" type="button">Kosongkan</button><button class="button button-dark" id="export-report-button" type="button">Export Excel</button></div>
           </div>
-          <div class="overflow-x-auto border-y border-[#dfe4ea] bg-white">
+          <div class="overflow-x-auto border-y border-[#CFC6B1] bg-white">
             <table class="report-table w-full min-w-[1120px] border-collapse text-left text-[12px]">
-              <thead class="border-b border-[#dfe4ea] text-[#687386]"><tr><th scope="col">Waktu</th><th scope="col">File</th><th scope="col">Jenis</th><th scope="col">Metode · brightness · conf</th><th scope="col">Total sebelum → sesudah</th><th scope="col">Region sebelum → sesudah</th><th scope="col">Avg. conf sebelum → sesudah</th><th scope="col">Model</th></tr></thead>
+              <thead class="border-b border-[#CFC6B1] text-[#777064]"><tr><th scope="col">Waktu</th><th scope="col">File</th><th scope="col">Jenis</th><th scope="col">Metode · brightness · conf</th><th scope="col">Total sebelum → sesudah</th><th scope="col">Region sebelum → sesudah</th><th scope="col">Avg. conf sebelum → sesudah</th><th scope="col">Model</th></tr></thead>
               <tbody id="report-table-body"><tr><td class="table-empty" colspan="8">Memuat laporan…</td></tr></tbody>
             </table>
           </div>
-          <p class="mt-3 text-[12px] text-[#687386]" id="report-summary"></p>
+          <p class="mt-3 text-[12px] text-[#777064]" id="report-summary"></p>
           <p class="detection-error mt-4" id="report-error" role="alert" hidden></p>
         </section>
 
         <section class="tab-panel settings-panel" id="panel-pengaturan" role="tabpanel" aria-labelledby="tab-pengaturan" data-panel="pengaturan" hidden>
           <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p class="mb-2 text-[11px] font-medium tracking-[0.12em] text-[#687386]">KONFIGURASI APLIKASI</p>
-              <h1 class="text-[25px] font-medium tracking-[-0.035em] text-[#111827] sm:text-[28px]">Pengaturan</h1>
-              <p class="mt-2 text-[14px] leading-6 text-[#566174]">Kelola model deteksi dan nilai confidence default.</p>
+              <p class="mb-2 text-[11px] font-medium tracking-[0.12em] text-[#777064]">KONFIGURASI APLIKASI</p>
+              <h1 class="text-[25px] font-medium tracking-[-0.035em] text-[#171612] sm:text-[28px]">Pengaturan</h1>
+              <p class="mt-2 text-[14px] leading-6 text-[#5F5A50]">Kelola model deteksi dan nilai confidence default.</p>
             </div>
             <button class="button button-dark" id="settings-upload-button" type="button">Upload model baru</button>
           </div>
 
-          <section class="settings-block border-y border-[#dfe4ea]" aria-labelledby="models-heading">
+          <section class="settings-block border-y border-[#CFC6B1]" aria-labelledby="models-heading">
             <div class="flex flex-wrap items-end justify-between gap-3 py-5">
               <div>
-                <h2 class="text-[16px] font-medium text-[#202938]" id="models-heading">Model tersimpan</h2>
-                <p class="mt-1 text-[13px] text-[#687386]">Model disimpan di folder proyek.</p>
+                <h2 class="text-[16px] font-medium text-[#37342D]" id="models-heading">Model tersimpan</h2>
+                <p class="mt-1 text-[13px] text-[#777064]">Model disimpan di folder proyek.</p>
               </div>
-              <span class="text-[12px] tabular-nums text-[#687386]" id="model-count">0 model</span>
+              <span class="text-[12px] tabular-nums text-[#777064]" id="model-count">0 model</span>
             </div>
             <div class="table-scroll overflow-x-auto">
               <table class="model-table w-full border-collapse text-left text-[13px]">
-                <thead class="border-b border-[#dfe4ea] text-[12px] font-normal text-[#687386]">
+                <thead class="border-b border-[#CFC6B1] text-[12px] font-normal text-[#777064]">
                   <tr><th class="py-3 pr-4 font-normal" scope="col">Nama</th><th class="py-3 pr-4 text-right font-normal" scope="col">Ukuran</th><th class="py-3 pr-4 font-normal" scope="col">Tanggal</th><th class="py-3 text-right font-normal" scope="col"><span class="sr-only">Aksi</span></th></tr>
                 </thead>
                 <tbody id="model-table-body">
-                  <tr><td class="table-empty py-6 text-[#687386]" colspan="4">Memuat model…</td></tr>
+                  <tr><td class="table-empty py-6 text-[#777064]" colspan="4">Memuat model…</td></tr>
                 </tbody>
               </table>
             </div>
           </section>
 
           <section class="settings-block confidence-settings mt-9 max-w-[600px]" aria-labelledby="default-confidence-heading">
-            <div class="border-b border-[#dfe4ea] pb-4">
-              <h2 class="text-[16px] font-medium text-[#202938]" id="default-confidence-heading">Default confidence</h2>
-              <p class="mt-1 text-[13px] text-[#687386]">Nilai ini digunakan setiap kali aplikasi dibuka.</p>
+            <div class="border-b border-[#CFC6B1] pb-4">
+              <h2 class="text-[16px] font-medium text-[#37342D]" id="default-confidence-heading">Default confidence</h2>
+              <p class="mt-1 text-[13px] text-[#777064]">Nilai ini digunakan setiap kali aplikasi dibuka.</p>
             </div>
             <div class="default-confidence-control pt-5">
-              <label class="text-[13px] font-medium text-[#303b4b]" for="settings-confidence">Confidence minimum</label>
+              <label class="text-[13px] font-medium text-[#37342D]" for="settings-confidence">Confidence minimum</label>
               <div class="default-range-row mt-3 flex items-center gap-4">
                 <input id="settings-confidence" class="range-input" type="range" min="0.1" max="0.9" step="0.05" value="0.25">
-                <output class="w-12 text-right font-mono text-[13px] tabular-nums text-[#202938]" id="settings-confidence-value" for="settings-confidence">0,25</output>
+                <output class="w-12 text-right font-mono text-[13px] tabular-nums text-[#37342D]" id="settings-confidence-value" for="settings-confidence">0,25</output>
               </div>
             </div>
-            <p class="save-note mt-3 text-[12px] text-[#687386]" id="settings-save-note" role="status" aria-live="polite">Perubahan tersimpan otomatis.</p>
+            <p class="save-note mt-3 text-[12px] text-[#777064]" id="settings-save-note" role="status" aria-live="polite">Perubahan tersimpan otomatis.</p>
           </section>
         </section>
 
-        <section class="region-editor border border-[#dfe4ea] bg-white p-4 sm:p-5" id="region-editor" aria-labelledby="region-editor-title" hidden>
+        <section class="region-editor border border-[#CFC6B1] bg-white p-4 sm:p-5" id="region-editor" aria-labelledby="region-editor-title" hidden>
           <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
-            <div><h2 class="text-[15px] font-medium text-[#202938]" id="region-editor-title">Region hitung</h2><p class="mt-1 text-[12px] leading-5 text-[#687386]" id="region-help">Region opsional. Klik Gambar Region, lalu pilih minimal tiga titik.</p></div>
-            <span class="text-[12px] tabular-nums text-[#687386]" id="region-point-count">0 titik</span>
+            <div><h2 class="text-[15px] font-medium text-[#37342D]" id="region-editor-title">Region hitung</h2><p class="mt-1 text-[12px] leading-5 text-[#777064]" id="region-help">Region opsional. Klik Gambar Region, lalu pilih minimal tiga titik.</p></div>
+            <span class="text-[12px] tabular-nums text-[#777064]" id="region-point-count">0 titik</span>
           </div>
-          <div class="canvas-frame flex min-h-[180px] items-center justify-center overflow-hidden bg-[#e6eaf0]"><canvas id="region-canvas" aria-label="Pratinjau media dan gambar region"></canvas></div>
+          <div class="canvas-frame flex min-h-[180px] items-center justify-center overflow-hidden bg-[#DED6C1]"><canvas id="region-canvas" aria-label="Pratinjau media dan gambar region"></canvas></div>
           <div class="mt-4 flex flex-wrap items-center gap-2">
             <button class="button button-outline" id="draw-region-button" type="button">Gambar Region</button>
             <button class="button button-dark" id="finish-region-button" type="button" disabled>Selesai</button>
             <button class="button button-outline" id="reset-region-button" type="button">Reset</button>
-            <span class="ml-1 text-[12px] text-[#687386]" id="region-status" role="status" aria-live="polite">Belum ada region.</span>
+            <span class="ml-1 text-[12px] text-[#777064]" id="region-status" role="status" aria-live="polite">Belum ada region.</span>
           </div>
         </section>
       </main>

@@ -385,6 +385,11 @@ const elements = {
   resultImage: document.getElementById("result-image"),
   imageLoading: document.getElementById("image-loading"),
   totalCount: document.getElementById("total-count"),
+  standingWaterCount: document.getElementById("count-standing-water"),
+  buildingFloodedCount: document.getElementById("count-building-flooded"),
+  rubbishCount: document.getElementById("count-rubbish"),
+  vehicleCount: document.getElementById("count-vehicle"),
+  personCount: document.getElementById("count-person"),
   insideCount: document.getElementById("inside-count"),
   averageConfidence: document.getElementById("average-confidence"),
   resultModel: document.getElementById("result-model"),
@@ -615,6 +620,79 @@ function showImageComparison(result) {
   elements.comparisonResult.src = result.result_url || result.enhanced_url || result.original_url || "";
 }
 
+function updateObjectCounts(result) {
+  const counts =
+    result?.class_counts ||
+    result?.classCounts ||
+    result?.counts_by_class ||
+    result?.countsByClass ||
+    result?.counts ||
+    {};
+
+  const normalized = Object.fromEntries(
+    Object.entries(counts).map(([key, value]) => [
+      String(key).trim().toLowerCase().replace(/[\s-]+/g, "_"),
+      Number(value) || 0,
+    ])
+  );
+
+  const getCount = (...keys) => {
+    for (const key of keys) {
+      const normalizedKey = String(key).trim().toLowerCase().replace(/[\s-]+/g, "_");
+      if (Object.prototype.hasOwnProperty.call(normalized, normalizedKey)) {
+        return normalized[normalizedKey];
+      }
+    }
+    return 0;
+  };
+
+  const values = {
+    standingWater: getCount("standing_water"),
+    buildingFlooded: getCount("building_flooded"),
+    rubbish: getCount("rubbish"),
+    vehicle: getCount("vehicle"),
+    person: getCount("person"),
+  };
+
+  if (elements.standingWaterCount) {
+    elements.standingWaterCount.textContent = String(values.standingWater);
+  }
+
+  if (elements.buildingFloodedCount) {
+    elements.buildingFloodedCount.textContent = String(values.buildingFlooded);
+  }
+
+  if (elements.rubbishCount) {
+    elements.rubbishCount.textContent = String(values.rubbish);
+  }
+
+  if (elements.vehicleCount) {
+    elements.vehicleCount.textContent = String(values.vehicle);
+  }
+
+  if (elements.personCount) {
+    elements.personCount.textContent = String(values.person);
+  }
+
+  const hasClassCounts = Object.keys(normalized).length > 0;
+  if (hasClassCounts && (result.total == null || Number.isNaN(Number(result.total)))) {
+    result.total = Object.values(values).reduce((sum, value) => sum + value, 0);
+  }
+}
+
+function resetObjectCounts(value = "—") {
+  [
+    elements.totalCount,
+    elements.standingWaterCount,
+    elements.buildingFloodedCount,
+    elements.rubbishCount,
+    elements.vehicleCount,
+    elements.personCount,
+  ].forEach((element) => {
+    if (element) element.textContent = value;
+  });
+}
+
 async function runDetection() {
   if (!state.currentFile || !state.activeModel) return;
   const requestId = ++state.detectSequence;
@@ -638,6 +716,7 @@ async function runDetection() {
     state.mockResultUrl = USE_MOCK ? result.result_url : null;
     elements.resultImage.src = result.result_url || result.original_url;
     elements.totalCount.textContent = String(result.total ?? 0);
+    updateObjectCounts(result);
     elements.insideCount.textContent = String(result.inside_region ?? 0);
     elements.averageConfidence.textContent = result.avg_conf == null ? "—" : formatDecimal(result.avg_conf);
     elements.resultModel.textContent = result.model || state.activeModel || "—";
@@ -684,6 +763,21 @@ function selectPhoto(file) {
   elements.photoFileName.textContent = file.name;
   elements.photoFileName.hidden = false;
   elements.totalCount.textContent = "—";
+  if (elements.standingWaterCount) {
+    elements.standingWaterCount.textContent = "—";
+  }
+  if (elements.buildingFloodedCount) {
+    elements.buildingFloodedCount.textContent = "—";
+  }
+  if (elements.rubbishCount) {
+    elements.rubbishCount.textContent = "—";
+  }
+  if (elements.vehicleCount) {
+    elements.vehicleCount.textContent = "—";
+  }
+  if (elements.personCount) {
+    elements.personCount.textContent = "—";
+  }
   elements.insideCount.textContent = "—";
   elements.averageConfidence.textContent = "—";
   elements.resultModel.textContent = state.activeModel || "—";
@@ -883,7 +977,7 @@ async function pollVideoProgress(jobId, sequence) {
       elements.videoUniqueTotal.textContent = String(progress.stats?.unique_total ?? 0);
       elements.videoBaseline.hidden = !progress.baseline;
       elements.videoBaseline.textContent = progress.baseline
-        ? `Sebelum enhancement: ${progress.baseline.total} kendaraan, ${progress.baseline.inside_region} di region, confidence ${formatDecimal(progress.baseline.avg_conf)}.`
+        ? `Sebelum enhancement: ${progress.baseline.total} object, ${progress.baseline.inside_region} di region, confidence ${formatDecimal(progress.baseline.avg_conf)}.`
         : "";
       elements.videoResult.hidden = false;
       elements.processVideo.disabled = false;
