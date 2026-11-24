@@ -281,6 +281,144 @@ summary:focus-visible,
   font-size: 12px;
 }
 
+.form-select {
+  min-height: 36px;
+  border: 1px solid #cbd2dc;
+  border-radius: 4px;
+  background: #fff;
+  padding: 0 30px 0 10px;
+  color: #273244;
+  font-size: 12px;
+}
+
+.video-dropzone:hover,
+.video-dropzone.is-dragging {
+  border-color: #1d5fbf;
+  background: #f9fbff;
+}
+
+.canvas-frame {
+  min-height: 180px;
+}
+
+.canvas-frame canvas {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 62vh;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e7eaf0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.comparison-table tr:last-child th,
+.comparison-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.comparison-table th:first-child {
+  text-align: left;
+  font-weight: 400;
+}
+
+.comparison-table thead th {
+  color: #687386;
+  font-weight: 400;
+}
+
+.comparison-image {
+  min-width: 0;
+  border: 1px solid #dfe4ea;
+  background: #fff;
+}
+
+.comparison-image figcaption {
+  padding: 9px 11px;
+  border-bottom: 1px solid #e7eaf0;
+  color: #687386;
+  font-size: 12px;
+}
+
+.comparison-image img {
+  display: block;
+  width: 100%;
+  height: 210px;
+  object-fit: contain;
+  background: #e6eaf0;
+}
+
+.progress-track {
+  height: 6px;
+  overflow: hidden;
+  background: #e4e8ee;
+}
+
+.progress-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: #1d5fbf;
+  transition: width 180ms ease;
+}
+
+.report-table th,
+.report-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #e7eaf0;
+  vertical-align: middle;
+}
+
+.report-table th {
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.report-table .numeric-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-table .report-file,
+.report-table .report-model {
+  max-width: 180px;
+  overflow-wrap: anywhere;
+}
+
+.report-table .table-empty {
+  padding: 20px 10px;
+  color: #687386;
+}
+
+.source-video {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+}
+
+.region-editor[hidden],
+.video-no-model[hidden],
+.video-workspace[hidden],
+.video-progress[hidden],
+.video-result[hidden],
+.comparison-section[hidden],
+.photo-file-name[hidden],
+.video-file-name[hidden],
+.report-error[hidden] {
+  display: none;
+}
+
 .toast {
   position: fixed;
   z-index: 20;
@@ -316,9 +454,9 @@ summary:focus-visible,
     padding-left: 10px;
   }
 
-  .model-table {
-    min-width: 560px;
-  }
+  .model-table { min-width: 560px; }
+
+  .comparison-image img { height: 180px; }
 
   .row-actions .text-button + .text-button {
     margin-left: 8px;
