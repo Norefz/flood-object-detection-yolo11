@@ -349,6 +349,7 @@ const elements = {
   mediaPreviewTitle: document.getElementById("media-preview-title"),
   mediaPreviewHelp: document.getElementById("media-preview-help"),
   photoPreview: document.getElementById("photo-preview"),
+  advancedOptions: document.getElementById("advanced-options"),
   enhancement: document.getElementById("enhancement-select"),
   brightness: document.getElementById("brightness-slider"),
   brightnessValue: document.getElementById("brightness-value"),
@@ -753,17 +754,18 @@ function selectPhoto(file) {
 function updateMediaPreviewLocation() {
   const type = state.previewType;
   const hasMedia = type === "foto" ? Boolean(state.currentFile) : Boolean(state.videoFile);
-  const destination = type === "foto" ? elements.photoPreviewSlot : elements.videoPreviewSlot;
+  const destination = state.activeTab === "video" ? elements.videoPreviewSlot : elements.photoPreviewSlot;
   if (!type || !hasMedia || !state.activeModel || state.activeTab !== type || !destination) {
     elements.mediaPreview.hidden = true;
-    return;
+  } else {
+    destination.prepend(elements.mediaPreview);
+    elements.mediaPreview.hidden = false;
+    elements.mediaPreviewTitle.textContent = type === "foto" ? "Preview Foto" : "Preview Video";
+    elements.mediaPreviewHelp.textContent = type === "foto"
+      ? "Pratinjau foto yang diunggah."
+      : "Pratinjau video yang diunggah.";
   }
-  destination.append(elements.mediaPreview);
-  elements.mediaPreview.hidden = false;
-  elements.mediaPreviewTitle.textContent = type === "foto" ? "Preview Foto" : "Preview Video";
-  elements.mediaPreviewHelp.textContent = type === "foto"
-    ? "Pratinjau foto yang diunggah."
-    : "Pratinjau video yang diunggah.";
+  destination.append(elements.advancedOptions);
 }
 
 function scheduleDetection() {

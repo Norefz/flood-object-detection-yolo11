@@ -52,30 +52,6 @@
           <p class="mt-2 text-[12px] leading-5 text-[#777064]" id="confidence-hint">Batas keyakinan minimum deteksi.</p>
         </section>
 
-        <details class="advanced-section border-b border-[#B7B09E] py-5">
-          <summary class="cursor-pointer text-[14px] font-medium text-[#37342D]">Opsi lanjutan</summary>
-          <div class="mt-4 space-y-5">
-            <div>
-              <label class="mb-2 block text-[12px] font-medium text-[#5F5A50]" for="enhancement-select">Enhancement</label>
-              <select id="enhancement-select" class="form-select w-full">
-                <option value="none">None</option>
-                <option value="he">Histogram Equalization</option>
-                <option value="clahe">CLAHE</option>
-                <option value="cs">Contrast Stretching</option>
-                <option value="gamma">Gamma</option>
-              </select>
-            </div>
-            <div>
-              <div class="mb-2 flex items-center justify-between gap-2">
-                <label class="text-[12px] font-medium text-[#5F5A50]" for="brightness-slider">Brightness</label>
-                <output class="font-mono text-[12px] tabular-nums text-[#5F5A50]" id="brightness-value" for="brightness-slider">0</output>
-              </div>
-              <input id="brightness-slider" class="range-input" type="range" min="-100" max="100" step="1" value="0">
-              <div class="mt-1 flex justify-between text-[11px] tabular-nums text-[#777064]" aria-hidden="true"><span>-100</span><span>100</span></div>
-            </div>
-          </div>
-        </details>
-
         <div class="mt-6 flex items-center gap-2 text-[12px] text-[#777064]">
           <span class="status-dot" aria-hidden="true"></span>
           <span>Mode deteksi objek</span>
@@ -118,7 +94,37 @@
 
             <p class="mt-2 text-[12px] text-[#777064]" id="photo-file-name" hidden></p>
             <div class="detection-error mt-4" id="detection-error" role="alert" hidden></div>
-          <div class="mt-5" id="photo-preview-slot"></div>
+            <div class="mt-5" id="photo-preview-slot">
+              <details class="advanced-options" id="advanced-options">
+                <summary class="advanced-options-summary">
+                  <span class="advanced-options-title">Opsi lanjutan</span>
+                  <span class="advanced-options-description">Enhancement dan pencahayaan sebelum deteksi</span>
+                  <svg class="advanced-options-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </summary>
+                <div class="advanced-options-body">
+                  <div class="grid gap-5 md:grid-cols-2">
+                    <div>
+                      <label class="mb-2 block text-[12px] font-medium text-[#5F5A50]" for="enhancement-select">Enhancement</label>
+                      <select id="enhancement-select" class="form-select w-full">
+                        <option value="none">None</option>
+                        <option value="he">Histogram Equalization</option>
+                        <option value="clahe">CLAHE</option>
+                        <option value="cs">Contrast Stretching</option>
+                        <option value="gamma">Gamma</option>
+                      </select>
+                    </div>
+                    <div>
+                      <div class="mb-2 flex items-center justify-between gap-2">
+                        <label class="text-[12px] font-medium text-[#5F5A50]" for="brightness-slider">Brightness</label>
+                        <output class="font-mono text-[12px] tabular-nums text-[#5F5A50]" id="brightness-value" for="brightness-slider">0</output>
+                      </div>
+                      <input id="brightness-slider" class="range-input" type="range" min="-100" max="100" step="1" value="0">
+                      <div class="mt-1 flex justify-between text-[11px] tabular-nums text-[#777064]" aria-hidden="true"><span>-100</span><span>100</span></div>
+                    </div>
+                  </div>
+                </div>
+              </details>
+            </div>
 
             <section class="result-section mt-9" id="result-section" aria-labelledby="result-heading" hidden>
               <div class="mb-4 flex flex-wrap items-end justify-between gap-4 border-b border-[#CFC6B1] pb-4">
