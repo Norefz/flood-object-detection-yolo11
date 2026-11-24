@@ -1126,8 +1126,7 @@ function bindEvents() {
     link.href = state.videoResultUrl;
     const sourceName = state.videoFile?.name || "video.mp4";
     const baseName = sourceName.replace(/\.[^.]+$/, "");
-    const extension = sourceName.match(/\.[^.]+$/)?.[0] || ".mp4";
-    link.download = `${baseName}-hasil${extension}`;
+    link.download = `${baseName}-hasil.mp4`;
     document.body.append(link);
     link.click();
     link.remove();
