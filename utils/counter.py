@@ -32,49 +32,192 @@ def point_in_region(poly, cx, cy):
 
 
 def draw_detections(img, boxes, poly):
-    """Gambar kotak deteksi dan region; boxes berisi x1,y1,x2,y2,confidence."""
+    """Gambar kotak deteksi dan region; boxes berisi x1,y1,x2,y2,confidence,class."""
+
     output = img.copy()
+
+    # =========================================================
+    # WARNA BOUNDING BOX BERDASARKAN KELAS
+    # Format OpenCV = BGR
+    # =========================================================
+    CLASS_COLORS = {
+        "standing_water": (225, 34, 184),     # RGB(184, 34, 225) -> BGR
+        "building_flooded": (0, 166, 214),    # RGB(214, 166, 0) -> BGR
+        "rubbish": (91, 142, 62),             # RGB(62, 142, 91) -> BGR
+        "vehicle": (196, 130, 59),             # RGB(59, 130, 196) -> BGR
+        "person": (74, 74, 201),              # RGB(201, 74, 74) -> BGR
+    }
+
+    # Warna default jika nama kelas tidak ditemukan
+    DEFAULT_COLOR = (220, 145, 48)
+
+    # =========================================================
+    # GAMBAR REGION
+    # =========================================================
     if poly is not None and len(poly) >= 3:
         contour = np.asarray(poly, dtype=np.int32).reshape((-1, 1, 2))
-        overlay = output.copy()
-        cv2.fillPoly(overlay, [contour], (44, 190, 130))
-        output = cv2.addWeighted(overlay, 0.18, output, 0.82, 0)
-        cv2.polylines(output, [contour], True, (44, 190, 130), 2, cv2.LINE_AA)
 
+        overlay = output.copy()
+
+        cv2.fillPoly(
+            overlay,
+            [contour],
+            (44, 190, 130)
+        )
+
+        output = cv2.addWeighted(
+            overlay,
+            0.18,
+            output,
+            0.82,
+            0
+        )
+
+        cv2.polylines(
+            output,
+            [contour],
+            True,
+            (44, 190, 130),
+            2,
+            cv2.LINE_AA
+        )
+
+    # =========================================================
+    # GAMBAR BOUNDING BOX
+    # =========================================================
     for box in boxes:
-        x1, y1, x2, y2 = (int(round(float(value))) for value in box[:4])
-        confidence = float(box[4]) if len(box) > 4 else 0.0
+
+        x1, y1, x2, y2 = (
+            int(round(float(value)))
+            for value in box[:4]
+        )
+
+        confidence = (
+            float(box[4])
+            if len(box) > 4
+            else 0.0
+        )
+
         center_x = (x1 + x2) / 2
         center_y = (y1 + y2) / 2
-        inside = point_in_region(poly, center_x, center_y)
-        color = (36, 180, 95) if inside else (220, 145, 48)
-        cv2.rectangle(output, (x1, y1), (x2, y2), color, 2, cv2.LINE_AA)
-        class_label = str(box[5]).strip() if len(box) > 5 else ""
-        label = f"{class_label} {confidence:.2f}" if class_label else f"{confidence:.2f}"
+
+        inside = point_in_region(
+            poly,
+            center_x,
+            center_y
+        )
+
+        # =====================================================
+        # AMBIL NAMA KELAS
+        # =====================================================
+        class_label = (
+            str(box[5]).strip()
+            if len(box) > 5
+            else ""
+        )
+
+        # Normalisasi nama kelas agar cocok dengan dictionary
+        class_key = (
+            class_label
+            .lower()
+            .strip()
+            .replace(" ", "_")
+            .replace("-", "_")
+        )
+
+        # =====================================================
+        # TENTUKAN WARNA BERDASARKAN KELAS
+        # =====================================================
+        color = CLASS_COLORS.get(
+            class_key,
+            DEFAULT_COLOR
+        )
+
+        # =====================================================
+        # BOUNDING BOX
+        # =====================================================
+        cv2.rectangle(
+            output,
+            (x1, y1),
+            (x2, y2),
+            color,
+            2,
+            cv2.LINE_AA
+        )
+
+        # =====================================================
+        # LABEL + CONFIDENCE
+        # =====================================================
+        label = (
+            f"{class_label} {confidence:.2f}"
+            if class_label
+            else f"{confidence:.2f}"
+        )
+
         font = cv2.FONT_HERSHEY_SIMPLEX
         font_scale = 0.52
-        text_size, baseline = cv2.getTextSize(label, font, font_scale, 1)
+
+        text_size, baseline = cv2.getTextSize(
+            label,
+            font,
+            font_scale,
+            1
+        )
+
         label_width = text_size[0] + 12
         label_height = text_size[1] + baseline + 8
-        label_x = min(max(0, x1), max(0, output.shape[1] - label_width))
-        label_top = max(0, y1 - label_height)
+
+        label_x = min(
+            max(0, x1),
+            max(0, output.shape[1] - label_width)
+        )
+
+        label_top = max(
+            0,
+            y1 - label_height
+        )
+
+        # =====================================================
+        # BACKGROUND LABEL
+        # Menggunakan warna yang sama dengan bounding box
+        # =====================================================
         cv2.rectangle(
             output,
             (label_x, label_top),
-            (min(output.shape[1] - 1, label_x + label_width), min(output.shape[0] - 1, label_top + label_height)),
+            (
+                min(
+                    output.shape[1] - 1,
+                    label_x + label_width
+                ),
+                min(
+                    output.shape[0] - 1,
+                    label_top + label_height
+                )
+            ),
             color,
-            cv2.FILLED,
+            cv2.FILLED
         )
+
+        # =====================================================
+        # TEXT LABEL
+        # =====================================================
         cv2.putText(
             output,
             label,
-            (label_x + 6, min(output.shape[0] - 1, label_top + text_size[1] + 4)),
+            (
+                label_x + 6,
+                min(
+                    output.shape[0] - 1,
+                    label_top + text_size[1] + 4
+                )
+            ),
             font,
             font_scale,
             (255, 255, 255),
             1,
-            cv2.LINE_AA,
+            cv2.LINE_AA
         )
+
     return output
 
 

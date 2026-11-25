@@ -839,6 +839,14 @@ function renderProgress(progress) {
   elements.progressBar.firstElementChild.style.width = `${percent}%`;
 }
 
+const classColors = {
+    standing_water: "rgb(184, 34, 225)",
+    building_flooded: "#D6A600",
+    rubbish: "#3E8E5B",
+    vehicle: "#3B82C4",
+    person: "#C94A4A"
+};
+
 function renderVideoClassCounts(counts) {
   elements.videoClassCounts.replaceChildren();
   const rows = Object.entries(counts || {}).sort(([left], [right]) => left.localeCompare(right));
