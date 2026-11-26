@@ -599,12 +599,8 @@ summary:focus-visible,
 
 .metric-card,
 .object-card {
-  border: 1px solid var(--glass-border) !important;
-
   border-radius: 20px !important;
-
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  padding: 7px 8px !important;
 }
 
 /* Total object */
