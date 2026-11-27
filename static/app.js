@@ -402,6 +402,7 @@ const elements = {
   videoResult: document.getElementById("video-result"),
   outputVideo: document.getElementById("output-video"),
   videoUniqueTotal: document.getElementById("video-unique-total"),
+  videoAverageConfidence: document.getElementById("video-average-confidence"),
   videoClassCounts: document.getElementById("video-class-counts"),
   videoBaseline: document.getElementById("video-baseline"),
   reportBody: document.getElementById("report-table-body"),
@@ -882,6 +883,9 @@ async function pollVideoProgress(jobId, sequence) {
       elements.outputVideo.src = progress.result_url;
       elements.outputVideo.load();
       elements.videoUniqueTotal.textContent = String(progress.stats?.unique_total ?? 0);
+      elements.videoAverageConfidence.textContent = progress.stats?.avg_conf == null
+        ? "—"
+        : formatDecimal(progress.stats.avg_conf);
       renderVideoClassCounts(progress.stats?.class_counts);
       elements.videoBaseline.hidden = !progress.baseline;
       elements.videoBaseline.textContent = progress.baseline
