@@ -921,16 +921,12 @@ def _process_video_job(job):
             baseline,
             enhanced_summary,
         )
-        result_stats = {
-            **stats,
-            "avg_conf": enhanced_summary["avg_conf"],
-        }
         _set_video_job(
             job["job_id"],
             status="done",
             percent=100,
             result_url=f"/outputs/{result_path.name}",
-            stats=result_stats,
+            stats=stats,
             baseline=baseline,
             message="Pemrosesan video selesai.",
         )
